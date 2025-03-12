@@ -69,32 +69,60 @@ function printTimetable() {
     window.print();
 }
 
-// Generate PDF
+// Generate PDF with a proper grid structure
 function generatePDF() {
-    const doc = new jsPDF();
+    const doc = new jsPDF({
+        orientation: 'landscape', // Better for wide timetables
+        unit: 'mm',
+        format: 'a4'
+    });
+
+    // Title
     doc.setFontSize(16);
     doc.text('Weekly Timetable', 10, 10);
 
-    const timetable = document.getElementById('timetable');
-    const cells = timetable.querySelectorAll('.cell');
-    let y = 20;
+    // Prepare table data
+    const tableData = [];
+    
+    // Add header row
+    tableData.push(DAYS);
 
-    // Header
-    DAYS.forEach((day, index) => {
-        doc.text(day, 10 + index * 25, y);
-    });
-    y += 10;
-
-    // Content
+    // Add time slots and corresponding entries
     TIME_SLOTS.forEach((time, timeIndex) => {
-        doc.text(time, 10, y);
-        for (let i = 1; i < DAYS.length; i++) {
-            const cell = cells[timeIndex * DAYS.length + i];
-            doc.text(cell.textContent || '', 35 + (i - 1) * 25, y);
+        const row = [time];
+        for (let dayIndex = 1; dayIndex < DAYS.length; dayIndex++) {
+            const cell = document.querySelector(`.cell[contenteditable][data-day="${DAYS[dayIndex]}"][data-time="${time}"]`);
+            row.push(cell ? cell.textContent.trim() : '');
         }
-        y += 10;
+        tableData.push(row);
     });
 
+    // Draw the table
+    const cellWidth = 35; // Width of each cell in mm
+    const cellHeight = 10; // Height of each cell in mm
+    const startX = 10; // Starting X position
+    const startY = 20; // Starting Y position after title
+    const pageWidth = doc.internal.pageSize.width;
+
+    // Set font size for the table
+    doc.setFontSize(10);
+
+    // Draw the table grid and content
+    tableData.forEach((row, rowIndex) => {
+        row.forEach((cell, colIndex) => {
+            const x = startX + colIndex * cellWidth;
+            const y = startY + rowIndex * cellHeight;
+
+            // Draw cell border
+            doc.setLineWidth(0.2);
+            doc.rect(x, y, cellWidth, cellHeight);
+
+            // Add text inside the cell
+            doc.text(cell, x + 2, y + 7); // Adjust text position inside the cell
+        });
+    });
+
+    // Save the PDF
     doc.save('timetable.pdf');
 }
 
