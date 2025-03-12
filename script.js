@@ -8,6 +8,7 @@ const DAYS_MS = ['Masa', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu',
 let TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${i + 8}:00 - ${i + 9}:00`); // 8 AM to 8 PM
 let currentDays = DAYS_MS; // Default to Malay
 let timetableName = 'Jadual Waktu'; // Default to Malay name
+let showWeekends = true; // Default to showing weekends
 
 // Initialize timetable
 function createTimetable() {
@@ -18,8 +19,11 @@ function createTimetable() {
     }
     timetable.innerHTML = '';
 
+    // Determine days to display based on showWeekends
+    const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6); // Exclude Saturday and Sunday
+
     // Create header row
-    currentDays.forEach(day => {
+    displayDays.forEach(day => {
         const cell = document.createElement('div');
         cell.className = 'cell header';
         cell.textContent = day;
@@ -28,7 +32,7 @@ function createTimetable() {
 
     // Create time slots and editable cells
     TIME_SLOTS.forEach((time, timeIndex) => {
-        currentDays.forEach((day, dayIndex) => {
+        displayDays.forEach((day, dayIndex) => {
             const cell = document.createElement('div');
             cell.className = 'cell' + (dayIndex === 0 ? ' time-slot' : '');
             
@@ -48,6 +52,9 @@ function createTimetable() {
             timetable.appendChild(cell);
         });
     });
+
+    // Adjust grid template columns based on number of days
+    timetable.style.gridTemplateColumns = `repeat(${displayDays.length}, 1fr)`;
 
     loadTimetableData(); // Load data after creating the structure
     updateTimetableName(); // Update the displayed and printable timetable name
@@ -77,7 +84,7 @@ function updateTimetableName() {
     }
 }
 
-// Save timetable, time slots, and name to LocalStorage
+// Save timetable, time slots, name, and weekend preference to LocalStorage
 function saveTimetable() {
     // Save timetable entries
     const cells = document.querySelectorAll('.cell[contenteditable][data-day]');
@@ -97,6 +104,7 @@ function saveTimetable() {
     localStorage.setItem('timeSlots', JSON.stringify(timeSlotsData));
     localStorage.setItem('language', currentDays === DAYS_MS ? 'malay' : 'english');
     localStorage.setItem('timetableName', timetableName);
+    localStorage.setItem('showWeekends', showWeekends);
 }
 
 // Load timetable data (entries and time slots) from LocalStorage
@@ -120,7 +128,7 @@ function loadTimetableData() {
     }
 }
 
-// Load initial state (language, timetable, and name)
+// Load initial state (language, timetable, name, and weekends)
 function loadInitialState() {
     // Load language preference
     const savedLanguage = localStorage.getItem('language') || 'malay';
@@ -129,11 +137,15 @@ function loadInitialState() {
     // Load timetable name or set default based on language
     timetableName = localStorage.getItem('timetableName') || (currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable');
 
+    // Load weekend preference
+    showWeekends = localStorage.getItem('showWeekends') === 'true'; // Default to true if not set
+    document.getElementById('show-weekends').checked = showWeekends;
+
     // Update radio buttons and timetable name
     updateRadioButtons();
     updateTimetableName();
 
-    // Create timetable with the loaded language
+    // Create timetable with the loaded settings
     createTimetable();
 }
 
@@ -145,10 +157,13 @@ function clearTimetable() {
         TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${i + 8}:00 - ${i + 9}:00`); // Reset to default
         localStorage.setItem('language', 'malay'); // Reset to Malay
         localStorage.setItem('timetableName', 'Jadual Waktu'); // Reset to Malay default
+        localStorage.setItem('showWeekends', 'true'); // Reset to show weekends
         currentDays = DAYS_MS;
         timetableName = 'Jadual Waktu';
+        showWeekends = true;
         updateRadioButtons();
         updateTimetableName();
+        document.getElementById('show-weekends').checked = showWeekends;
         createTimetable();
     }
 }
@@ -175,7 +190,8 @@ function generatePDF() {
 
     // Prepare table data with current days
     const tableData = [];
-    tableData.push(currentDays); // Header row
+    const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6); // Exclude Saturday and Sunday
+    tableData.push(displayDays); // Header row
 
     // Update TIME_SLOTS from the current state of time slot cells
     const timeSlotCells = document.querySelectorAll('.cell.time-slot[contenteditable]');
@@ -184,8 +200,8 @@ function generatePDF() {
     // Add time slots and corresponding entries
     TIME_SLOTS.forEach((time, timeIndex) => {
         const row = [time];
-        for (let dayIndex = 1; dayIndex < currentDays.length; dayIndex++) {
-            const cell = document.querySelector(`.cell[contenteditable][data-day="${currentDays[dayIndex]}"][data-time="${time}"]`);
+        for (let dayIndex = 1; dayIndex < displayDays.length; dayIndex++) {
+            const cell = document.querySelector(`.cell[contenteditable][data-day="${displayDays[dayIndex]}"][data-time="${time}"]`);
             row.push(cell ? cell.textContent.trim() : '');
         }
         tableData.push(row);
@@ -241,6 +257,13 @@ document.querySelectorAll('input[name="language"]').forEach(radio => {
         createTimetable();
         saveTimetable();
     });
+});
+
+// Handle weekend toggle
+document.getElementById('show-weekends').addEventListener('change', (event) => {
+    showWeekends = event.target.checked;
+    createTimetable(); // Recreate timetable with updated weekend setting
+    saveTimetable();  // Save the new preference
 });
 
 // Initialize on load
