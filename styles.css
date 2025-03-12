@@ -79,7 +79,7 @@ button:hover {
     background-color: white;
     padding: 10px;
     min-height: 50px;
-    border: 1px solid #ccc;
+    border: 0.5px solid #e0e0e0; /* Thinner border with a lighter gray for a modern look */
     position: relative;
     cursor: pointer;
 }
@@ -97,12 +97,14 @@ button:hover {
     color: white;
     font-weight: bold;
     text-align: center;
+    border: 0.5px solid #e0e0e0; /* Match the thinner, modern border */
 }
 
 .time-slot {
     background-color: #e9ecef;
     font-size: 0.9em;
     text-align: center;
+    border: 0.5px solid #e0e0e0; /* Match the thinner, modern border */
 }
 
 /* Responsive Design */
@@ -124,6 +126,6 @@ button:hover {
         border: none;
     }
     .cell {
-        border: 1px solid #000;
+        border: 1px solid #000; /* Keep print borders thicker for clarity */
     }
 }
