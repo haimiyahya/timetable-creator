@@ -1,133 +1,107 @@
 const { jsPDF } = window.jspdf;
-let timetableData = JSON.parse(localStorage.getItem('timetableData')) || {};
+const DAYS = ['Time', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${i + 8}:00 - ${i + 9}:00`); // 8 AM to 8 PM
 
-document.addEventListener('DOMContentLoaded', () => {
-    renderTimetable();
-    setupEventListeners();
-});
-
-function setupEventListeners() {
-    const modal = document.getElementById('classModal');
-    const addClassBtn = document.getElementById('addClass');
-    const closeBtn = document.querySelector('.close');
-    const classForm = document.getElementById('classForm');
-    const printBtn = document.getElementById('printBtn');
-    const savePdfBtn = document.getElementById('savePdfBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const bgColor = document.getElementById('bgColor');
-    const fontFamily = document.getElementById('fontFamily');
-
-    addClassBtn.onclick = () => modal.style.display = 'block';
-    closeBtn.onclick = () => modal.style.display = 'none';
-    window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; };
-
-    classForm.onsubmit = (e) => {
-        e.preventDefault();
-        addClass();
-        modal.style.display = 'none';
-    };
-
-    printBtn.onclick = () => window.print();
-    savePdfBtn.onclick = generatePDF;
-    clearBtn.onclick = () => {
-        timetableData = {};
-        localStorage.setItem('timetableData', JSON.stringify(timetableData));
-        renderTimetable();
-    };
-
-    bgColor.onchange = () => {
-        document.getElementById('timetable').style.backgroundColor = bgColor.value;
-        saveCustomization();
-    };
-    fontFamily.onchange = () => {
-        document.getElementById('timetable').style.fontFamily = fontFamily.value;
-        saveCustomization();
-    };
-
-    // Load saved customization
-    const savedCustomization = JSON.parse(localStorage.getItem('customization')) || {};
-    if (savedCustomization.bgColor) {
-        bgColor.value = savedCustomization.bgColor;
-        document.getElementById('timetable').style.backgroundColor = savedCustomization.bgColor;
-    }
-    if (savedCustomization.fontFamily) {
-        fontFamily.value = savedCustomization.fontFamily;
-        document.getElementById('timetable').style.fontFamily = savedCustomization.fontFamily;
-    }
-}
-
-function addClass() {
-    const subject = document.getElementById('subject').value;
-    const day = document.getElementById('day').value;
-    const startTime = document.getElementById('startTime').value;
-    const endTime = document.getElementById('endTime').value;
-    const location = document.getElementById('location').value;
-    const color = document.getElementById('classColor').value;
-
-    if (!timetableData[day]) timetableData[day] = [];
-    timetableData[day].push({ subject, startTime, endTime, location, color });
-
-    localStorage.setItem('timetableData', JSON.stringify(timetableData));
-    renderTimetable();
-    document.getElementById('classForm').reset();
-}
-
-function renderTimetable() {
+// Initialize timetable
+function createTimetable() {
     const timetable = document.getElementById('timetable');
     timetable.innerHTML = '';
 
-    const days = ['Time', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    days.forEach(day => {
-        const div = document.createElement('div');
-        div.className = 'header';
-        div.textContent = day;
-        timetable.appendChild(div);
+    // Create header row
+    DAYS.forEach(day => {
+        const cell = document.createElement('div');
+        cell.className = 'cell header';
+        cell.textContent = day;
+        timetable.appendChild(cell);
     });
 
-    for (let hour = 8; hour < 20; hour++) {
-        for (let col = 0; col < 8; col++) {
-            const div = document.createElement('div');
-            if (col === 0) {
-                div.textContent = `${hour}:00 - ${hour + 1}:00`;
-                div.className = 'header';
+    // Create time slots and editable cells
+    TIME_SLOTS.forEach((time, timeIndex) => {
+        DAYS.forEach((day, dayIndex) => {
+            const cell = document.createElement('div');
+            cell.className = 'cell' + (dayIndex === 0 ? ' time-slot' : '');
+            if (dayIndex === 0) {
+                cell.textContent = time;
             } else {
-                const day = days[col];
-                if (timetableData[day]) {
-                    timetableData[day].forEach(item => {
-                        const startHour = parseInt(item.startTime.split(':')[0]);
-                        if (startHour === hour) {
-                            const classDiv = document.createElement('div');
-                            classDiv.className = 'class-item';
-                            classDiv.style.backgroundColor = item.color;
-                            classDiv.innerHTML = `${item.subject}<br>${item.startTime} - ${item.endTime}<br>${item.location || ''}`;
-                            div.appendChild(classDiv);
-                        }
-                    });
-                }
+                cell.setAttribute('contenteditable', 'true');
+                cell.dataset.day = day;
+                cell.dataset.time = time;
+                cell.addEventListener('input', saveTimetable);
             }
-            timetable.appendChild(div);
-        }
+            timetable.appendChild(cell);
+        });
+    });
+
+    loadTimetable();
+}
+
+// Save timetable to LocalStorage
+function saveTimetable() {
+    const cells = document.querySelectorAll('.cell[contenteditable]');
+    const data = {};
+    cells.forEach(cell => {
+        const key = `${cell.dataset.day}-${cell.dataset.time}`;
+        data[key] = cell.textContent.trim();
+    });
+    localStorage.setItem('timetable', JSON.stringify(data));
+}
+
+// Load timetable from LocalStorage
+function loadTimetable() {
+    const data = JSON.parse(localStorage.getItem('timetable') || '{}');
+    const cells = document.querySelectorAll('.cell[contenteditable]');
+    cells.forEach(cell => {
+        const key = `${cell.dataset.day}-${cell.dataset.time}`;
+        cell.textContent = data[key] || '';
+    });
+}
+
+// Clear timetable
+function clearTimetable() {
+    if (confirm('Are you sure you want to clear the timetable?')) {
+        localStorage.removeItem('timetable');
+        createTimetable();
     }
 }
 
-function generatePDF() {
-    const doc = new jsPDF();
-    const timetable = document.getElementById('timetable');
-    doc.html(timetable, {
-        callback: function (doc) {
-            doc.save('timetable.pdf');
-        },
-        x: 10,
-        y: 10,
-        width: 190,
-        windowWidth: 1000
-    });
+// Print timetable
+function printTimetable() {
+    window.print();
 }
 
-function saveCustomization() {
-    const customization = {
-        bgColor: document.getElementById('bgColor').value,
-        fontFamily: document.getElementById('fontFamily').value
-    };
-    localStorage.setItem('customization', JSON.stringify(customization));
+// Generate PDF
+function generatePDF() {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('Weekly Timetable', 10, 10);
+
+    const timetable = document.getElementById('timetable');
+    const cells = timetable.querySelectorAll('.cell');
+    let y = 20;
+
+    // Header
+    DAYS.forEach((day, index) => {
+        doc.text(day, 10 + index * 25, y);
+    });
+    y += 10;
+
+    // Content
+    TIME_SLOTS.forEach((time, timeIndex) => {
+        doc.text(time, 10, y);
+        for (let i = 1; i < DAYS.length; i++) {
+            const cell = cells[timeIndex * DAYS.length + i];
+            doc.text(cell.textContent || '', 35 + (i - 1) * 25, y);
+        }
+        y += 10;
+    });
+
+    doc.save('timetable.pdf');
 }
+
+// Event listeners
+document.getElementById('print-btn').addEventListener('click', printTimetable);
+document.getElementById('pdf-btn').addEventListener('click', generatePDF);
+document.getElementById('clear-btn').addEventListener('click', clearTimetable);
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', createTimetable);

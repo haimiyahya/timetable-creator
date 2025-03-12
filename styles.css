@@ -1,98 +1,93 @@
 body {
     font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
     margin: 0;
     padding: 20px;
-    background-color: #f0f0f0;
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
+    text-align: center;
 }
 
 h1 {
-    text-align: center;
+    color: #333;
 }
 
-.controls, .customize {
-    margin: 10px 0;
-    text-align: center;
+.controls {
+    margin: 20px 0;
 }
 
 button {
-    padding: 8px 16px;
-    margin: 0 5px;
+    padding: 10px 20px;
+    margin: 0 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
     cursor: pointer;
 }
 
-#timetable {
+button:hover {
+    background-color: #0056b3;
+}
+
+.timetable {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     gap: 2px;
-    background-color: #fff;
-    padding: 10px;
-    border: 1px solid #ccc;
-}
-
-#timetable div {
-    padding: 10px;
-    border: 1px solid #ddd;
-    min-height: 50px;
-}
-
-.header {
-    font-weight: bold;
-    text-align: center;
-    background-color: #e0e0e0;
-}
-
-.class-item {
-    margin: 5px 0;
-    padding: 5px;
-    color: #fff;
-    border-radius: 3px;
-}
-
-/* Modal Styles */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-}
-
-.modal-content {
-    background-color: #fff;
-    margin: 15% auto;
-    padding: 20px;
-    width: 300px;
+    background-color: #ddd;
+    padding: 2px;
     border-radius: 5px;
 }
 
-.close {
-    float: right;
-    font-size: 20px;
+.cell {
+    background-color: white;
+    padding: 10px;
+    min-height: 50px;
+    border: 1px solid #ccc;
+    position: relative;
     cursor: pointer;
 }
 
-form label {
-    display: block;
-    margin: 10px 0;
+.cell:hover {
+    background-color: #f0f0f0;
 }
 
-form input, form select {
-    width: 100%;
-    padding: 5px;
+.cell[contenteditable="true"] {
+    outline: none;
 }
 
-@media (max-width: 600px) {
-    #timetable {
-        grid-template-columns: 1fr;
+.header {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+}
+
+.time-slot {
+    background-color: #e9ecef;
+    font-size: 0.9em;
+    text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .timetable {
+        grid-template-columns: repeat(4, 1fr);
     }
-    .header:not(:first-child) {
+}
+
+@media print {
+    .controls, h1 {
         display: none;
+    }
+    .timetable {
+        gap: 0;
+        border: none;
+    }
+    .cell {
+        border: 1px solid #000;
     }
 }
