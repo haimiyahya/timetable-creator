@@ -61,7 +61,7 @@ function createTimetable() {
         timetable.style.gridTemplateColumns = `repeat(${displayDays.length}, 1fr)`;
     } else {
         // Days as Rows (columns are time slots, rows are days)
-        // Create header row (time slots with "Day" as first column)
+        // Create header row (only "Day" and time slots)
         ['Day', ...TIME_SLOTS].forEach(time => {
             const cell = document.createElement('div');
             cell.className = 'cell header';
@@ -73,7 +73,7 @@ function createTimetable() {
         displayDays.forEach((day) => {
             // Add day label as the first cell of the row
             const dayCell = document.createElement('div');
-            dayCell.className = 'cell time-slot';
+            dayCell.className = 'cell'; // Remove 'time-slot' class to avoid confusion
             dayCell.textContent = day; // Day label (non-editable)
             timetable.appendChild(dayCell);
 
