@@ -193,64 +193,88 @@ function generatePDF() {
         format: 'a4'
     });
 
-    // Title using the current timetable name
+    // Page dimensions
+    const pageWidth = 297;
+    const pageHeight = 210;
+    const margin = 10;
+    const maxContentHeight = pageHeight - margin * 2;
+
+    // Title
     doc.setFontSize(16);
-    doc.text(timetableName, 10, 15);
+    doc.setTextColor(51, 51, 51); // #333 from .timetable-name
+    doc.text(timetableName, margin, margin + 5);
 
-    // Prepare table data with current days
-    const tableData = [];
-    const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6); // Exclude Saturday and Sunday
-    tableData.push(displayDays); // Header row
+    // Prepare table data
+    const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6);
+    const tableData = [displayDays]; // Header row
 
-    // Update TIME_SLOTS from the current state of time slot cells
     const timeSlotCells = document.querySelectorAll('.cell.time-slot[contenteditable]');
     TIME_SLOTS = Array.from(timeSlotCells).map(cell => cell.textContent.trim());
 
-    // Add time slots and corresponding entries
-    TIME_SLOTS.forEach((time, timeIndex) => {
+    TIME_SLOTS.forEach((time) => {
         const row = [time];
         for (let dayIndex = 1; dayIndex < displayDays.length; dayIndex++) {
-            const cell = document.querySelector(`.cell[contenteditable][data-day="${displayDays[dayIndex]}"][data-time="${time}"]`);
+            const cell = document.querySelector(
+                `.cell[contenteditable][data-day="${displayDays[dayIndex]}"][data-time="${time}"]`
+            );
             row.push(cell ? cell.textContent.trim() : '');
         }
         tableData.push(row);
     });
 
-    // Table dimensions with scaling
-    const baseCellWidth = 25 * pdfCellScale; // Scale the width
-    const baseCellHeight = 7; // Base height for a single line
-    const fontSize = 8; // Fixed font size for consistency
-    const lineHeight = fontSize * 0.5; // Approximate height per line
-    const startX = 10;
-    let startY = 25;
+    // Table dimensions
+    const baseCellWidth = 25 * pdfCellScale;
+    const baseCellHeight = 7;
+    const fontSize = 8;
+    const lineHeight = fontSize * 0.4;
+    const startX = margin;
+    let startY = margin + 15;
 
-    // Draw the table with dynamic heights
-    doc.setLineWidth(0.3);
-    doc.setDrawColor(0);
+    // Draw table
+    doc.setLineWidth(0.2);
+    doc.setDrawColor(224, 224, 224); // #e0e0e0 from .cell border
     doc.setFontSize(fontSize);
 
+    let currentY = startY;
     tableData.forEach((row, rowIndex) => {
-        // Calculate the height for this row based on the tallest cell
         let maxLines = 1;
         row.forEach(cell => {
             const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
             maxLines = Math.max(maxLines, lines.length);
         });
-        const cellHeight = (baseCellHeight + (maxLines - 1) * lineHeight) * pdfCellScale; // Adjust height for lines
+        const cellHeight = (baseCellHeight + (maxLines - 1) * lineHeight) * pdfCellScale;
+
+        if (currentY + cellHeight > maxContentHeight) {
+            doc.addPage();
+            currentY = margin;
+        }
 
         row.forEach((cell, colIndex) => {
             const x = startX + colIndex * baseCellWidth;
-            const y = startY;
+            const y = currentY;
 
-            // Draw cell border
-            doc.rect(x, y, baseCellWidth, cellHeight);
+            // Styling based on cell type
+            if (rowIndex === 0) {
+                doc.setFillColor(0, 123, 255); // #007bff from .header
+                doc.rect(x, y, baseCellWidth, cellHeight, 'F'); // Filled rectangle
+                doc.setTextColor(255, 255, 255); // White text from .header
+            } else if (colIndex === 0) {
+                doc.setFillColor(233, 236, 239); // #e9ecef from .time-slot
+                doc.rect(x, y, baseCellWidth, cellHeight, 'F');
+                doc.setTextColor(51, 51, 51); // #333 from body
+            } else {
+                doc.setFillColor(255, 255, 255); // White from .cell
+                doc.rect(x, y, baseCellWidth, cellHeight, 'F');
+                doc.setTextColor(51, 51, 51);
+            }
 
-            // Add text inside the cell with word wrapping
+            doc.rect(x, y, baseCellWidth, cellHeight); // Border
+
             const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
-            doc.text(lines, x + 1, y + 4, { maxWidth: baseCellWidth - 2 });
+            doc.text(lines, x + 1, y + 3, { maxWidth: baseCellWidth - 2 });
         });
 
-        startY += cellHeight; // Move to the next row
+        currentY += cellHeight;
     });
 
     doc.save('timetable.pdf');
