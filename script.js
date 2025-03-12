@@ -185,7 +185,7 @@ function printTimetable() {
     document.querySelector('title').textContent = originalTitle; // Restore original title
 }
 
-// Generate PDF with dynamic cell size
+// Generate PDF with dynamic cell size and modern borders
 function generatePDF() {
     const doc = new jsPDF({
         orientation: 'landscape',
@@ -224,9 +224,10 @@ function generatePDF() {
     const startX = 10;
     let startY = 25;
 
-    // Draw the table with dynamic heights
-    doc.setLineWidth(0.3);
-    doc.setDrawColor(0);
+    // Draw the table with dynamic heights and modern borders
+    doc.setLineWidth(0.1); // Thinner border for a modern look
+    doc.setDrawColor(102, 102, 102); // Light gray (#666) for a sleek appearance
+    doc.setFillColor(255, 255, 255); // White fill for cells
     doc.setFontSize(fontSize);
 
     tableData.forEach((row, rowIndex) => {
@@ -242,8 +243,8 @@ function generatePDF() {
             const x = startX + colIndex * baseCellWidth;
             const y = startY;
 
-            // Draw cell border
-            doc.rect(x, y, baseCellWidth, cellHeight);
+            // Draw cell with modern border
+            doc.rect(x, y, baseCellWidth, cellHeight, 'FD'); // 'FD' for fill and stroke
 
             // Add text inside the cell with word wrapping
             const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
