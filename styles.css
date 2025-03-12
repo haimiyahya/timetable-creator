@@ -52,6 +52,14 @@ body {
     border-radius: 5px;
 }
 
+.controls select {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: white;
+    cursor: pointer;
+}
+
 button {
     padding: 10px 20px;
     margin: 0 10px;
@@ -79,7 +87,7 @@ button:hover {
     background-color: white;
     padding: 10px;
     min-height: 50px;
-    border: 0.5px solid #e0e0e0; /* Thinner border with a lighter gray for a modern look */
+    border: 0.5px solid #e0e0e0; /* Thinner border with a lighter gray */
     position: relative;
     cursor: pointer;
 }
@@ -97,14 +105,14 @@ button:hover {
     color: white;
     font-weight: bold;
     text-align: center;
-    border: 0.5px solid #e0e0e0; /* Match the thinner, modern border */
+    border: 0.5px solid #e0e0e0;
 }
 
 .time-slot {
     background-color: #e9ecef;
     font-size: 0.9em;
     text-align: center;
-    border: 0.5px solid #e0e0e0; /* Match the thinner, modern border */
+    border: 0.5px solid #e0e0e0;
 }
 
 /* Responsive Design */

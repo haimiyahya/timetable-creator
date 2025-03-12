@@ -10,6 +10,7 @@ let currentDays = DAYS_MS; // Default to Malay
 let timetableName = 'Jadual Waktu'; // Default to Malay name
 let showWeekends = true; // Default to showing weekends
 let pdfCellScale = 1; // Default scaling factor for PDF cell size
+let timeAsRows = true; // Default to time as rows
 
 // Initialize timetable
 function createTimetable() {
@@ -23,39 +24,74 @@ function createTimetable() {
     // Determine days to display based on showWeekends
     const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6); // Exclude Saturday and Sunday
 
-    // Create header row
-    displayDays.forEach(day => {
-        const cell = document.createElement('div');
-        cell.className = 'cell header';
-        cell.textContent = day;
-        timetable.appendChild(cell);
-    });
-
-    // Create time slots and editable cells
-    TIME_SLOTS.forEach((time, timeIndex) => {
-        displayDays.forEach((day, dayIndex) => {
+    if (timeAsRows) {
+        // Time as Rows (current behavior: columns are days, rows are time slots)
+        // Create header row (days)
+        displayDays.forEach(day => {
             const cell = document.createElement('div');
-            cell.className = 'cell' + (dayIndex === 0 ? ' time-slot' : '');
-            
-            if (dayIndex === 0) {
-                // Make time slot editable
-                cell.setAttribute('contenteditable', 'true');
-                cell.textContent = time;
-                cell.dataset.timeIndex = timeIndex;
-                cell.addEventListener('input', saveTimetable);
-            } else {
-                // Timetable entry cells
-                cell.setAttribute('contenteditable', 'true');
-                cell.dataset.day = day;
-                cell.dataset.time = time;
-                cell.addEventListener('input', saveTimetable);
-            }
+            cell.className = 'cell header';
+            cell.textContent = day;
             timetable.appendChild(cell);
         });
-    });
 
-    // Adjust grid template columns based on number of days
-    timetable.style.gridTemplateColumns = `repeat(${displayDays.length}, 1fr)`;
+        // Create time slots and editable cells
+        TIME_SLOTS.forEach((time, timeIndex) => {
+            displayDays.forEach((day, dayIndex) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell' + (dayIndex === 0 ? ' time-slot' : '');
+                
+                if (dayIndex === 0) {
+                    // Make time slot editable
+                    cell.setAttribute('contenteditable', 'true');
+                    cell.textContent = time;
+                    cell.dataset.timeIndex = timeIndex;
+                    cell.addEventListener('input', saveTimetable);
+                } else {
+                    // Timetable entry cells
+                    cell.setAttribute('contenteditable', 'true');
+                    cell.dataset.day = day;
+                    cell.dataset.time = time;
+                    cell.addEventListener('input', saveTimetable);
+                }
+                timetable.appendChild(cell);
+            });
+        });
+
+        // Adjust grid template columns based on number of days
+        timetable.style.gridTemplateColumns = `repeat(${displayDays.length}, 1fr)`;
+    } else {
+        // Days as Rows (columns are time slots, rows are days)
+        // Create header row (time slots)
+        TIME_SLOTS.forEach(time => {
+            const cell = document.createElement('div');
+            cell.className = 'cell header';
+            cell.textContent = time;
+            timetable.appendChild(cell);
+        });
+
+        // Create days and editable cells
+        displayDays.forEach((day, dayIndex) => {
+            TIME_SLOTS.forEach((time, timeIndex) => {
+                const cell = document.createElement('div');
+                cell.className = 'cell' + (timeIndex === 0 ? ' time-slot' : '');
+                
+                if (timeIndex === 0) {
+                    // Make day label (acting as row header) non-editable
+                    cell.textContent = day;
+                } else {
+                    // Timetable entry cells
+                    cell.setAttribute('contenteditable', 'true');
+                    cell.dataset.day = day;
+                    cell.dataset.time = time;
+                    cell.addEventListener('input', saveTimetable);
+                }
+                timetable.appendChild(cell);
+            });
+        });
+
+        // Adjust grid template columns based on number of time slots
+        timetable.style.gridTemplateColumns = `repeat(${TIME_SLOTS.length}, 1fr)`;
+    }
 
     loadTimetableData(); // Load data after creating the structure
     updateTimetableName(); // Update the displayed and printable timetable name
@@ -85,7 +121,7 @@ function updateTimetableName() {
     }
 }
 
-// Save timetable, time slots, name, weekend preference, and cell scale to LocalStorage
+// Save timetable, time slots, name, weekend preference, cell scale, and row type to LocalStorage
 function saveTimetable() {
     // Save timetable entries
     const cells = document.querySelectorAll('.cell[contenteditable][data-day]');
@@ -107,6 +143,7 @@ function saveTimetable() {
     localStorage.setItem('timetableName', timetableName);
     localStorage.setItem('showWeekends', showWeekends);
     localStorage.setItem('pdfCellScale', pdfCellScale);
+    localStorage.setItem('timeAsRows', timeAsRows);
 }
 
 // Load timetable data (entries and time slots) from LocalStorage
@@ -130,7 +167,7 @@ function loadTimetableData() {
     }
 }
 
-// Load initial state (language, timetable, name, weekends, and cell scale)
+// Load initial state (language, timetable, name, weekends, cell scale, and row type)
 function loadInitialState() {
     // Load language preference
     const savedLanguage = localStorage.getItem('language') || 'malay';
@@ -146,6 +183,10 @@ function loadInitialState() {
     // Load PDF cell scale
     pdfCellScale = parseFloat(localStorage.getItem('pdfCellScale')) || 1;
     document.getElementById('pdf-cell-scale').value = pdfCellScale;
+
+    // Load row type preference
+    timeAsRows = localStorage.getItem('timeAsRows') !== 'false'; // Default to true if not set
+    document.getElementById('row-type').value = timeAsRows ? 'time' : 'days';
 
     // Update radio buttons and timetable name
     updateRadioButtons();
@@ -165,14 +206,17 @@ function clearTimetable() {
         localStorage.setItem('timetableName', 'Jadual Waktu'); // Reset to Malay default
         localStorage.setItem('showWeekends', 'true'); // Reset to show weekends
         localStorage.setItem('pdfCellScale', '1'); // Reset to default scale
+        localStorage.setItem('timeAsRows', 'true'); // Reset to time as rows
         currentDays = DAYS_MS;
         timetableName = 'Jadual Waktu';
         showWeekends = true;
         pdfCellScale = 1;
+        timeAsRows = true;
         updateRadioButtons();
         updateTimetableName();
         document.getElementById('show-weekends').checked = showWeekends;
         document.getElementById('pdf-cell-scale').value = pdfCellScale;
+        document.getElementById('row-type').value = 'time';
         createTimetable();
     }
 }
@@ -185,7 +229,7 @@ function printTimetable() {
     document.querySelector('title').textContent = originalTitle; // Restore original title
 }
 
-// Generate PDF with dynamic cell size
+// Generate PDF with dynamic cell size and modern borders
 function generatePDF() {
     const doc = new jsPDF({
         orientation: 'landscape',
@@ -197,24 +241,39 @@ function generatePDF() {
     doc.setFontSize(16);
     doc.text(timetableName, 10, 15);
 
-    // Prepare table data with current days
+    // Prepare table data based on row type
     const tableData = [];
     const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6); // Exclude Saturday and Sunday
-    tableData.push(displayDays); // Header row
 
     // Update TIME_SLOTS from the current state of time slot cells
     const timeSlotCells = document.querySelectorAll('.cell.time-slot[contenteditable]');
     TIME_SLOTS = Array.from(timeSlotCells).map(cell => cell.textContent.trim());
 
-    // Add time slots and corresponding entries
-    TIME_SLOTS.forEach((time, timeIndex) => {
-        const row = [time];
-        for (let dayIndex = 1; dayIndex < displayDays.length; dayIndex++) {
-            const cell = document.querySelector(`.cell[contenteditable][data-day="${displayDays[dayIndex]}"][data-time="${time}"]`);
-            row.push(cell ? cell.textContent.trim() : '');
-        }
-        tableData.push(row);
-    });
+    if (timeAsRows) {
+        // Time as Rows (columns are days, rows are time slots)
+        tableData.push(displayDays); // Header row (days)
+
+        TIME_SLOTS.forEach((time, timeIndex) => {
+            const row = [time];
+            for (let dayIndex = 1; dayIndex < displayDays.length; dayIndex++) {
+                const cell = document.querySelector(`.cell[contenteditable][data-day="${displayDays[dayIndex]}"][data-time="${time}"]`);
+                row.push(cell ? cell.textContent.trim() : '');
+            }
+            tableData.push(row);
+        });
+    } else {
+        // Days as Rows (columns are time slots, rows are days)
+        tableData.push(TIME_SLOTS); // Header row (time slots)
+
+        displayDays.forEach((day, dayIndex) => {
+            const row = [day];
+            for (let timeIndex = 1; timeIndex < TIME_SLOTS.length; timeIndex++) {
+                const cell = document.querySelector(`.cell[contenteditable][data-day="${day}"][data-time="${TIME_SLOTS[timeIndex]}"]`);
+                row.push(cell ? cell.textContent.trim() : '');
+            }
+            tableData.push(row);
+        });
+    }
 
     // Table dimensions with scaling
     const baseCellWidth = 25 * pdfCellScale; // Scale the width
@@ -224,9 +283,10 @@ function generatePDF() {
     const startX = 10;
     let startY = 25;
 
-    // Draw the table with dynamic heights
-    doc.setLineWidth(0.3);
-    doc.setDrawColor(0);
+    // Draw the table with dynamic heights and modern borders
+    doc.setLineWidth(0.1); // Thinner border for a modern look
+    doc.setDrawColor(102, 102, 102); // Light gray (#666) for a sleek appearance
+    doc.setFillColor(255, 255, 255); // White fill for cells
     doc.setFontSize(fontSize);
 
     tableData.forEach((row, rowIndex) => {
@@ -242,8 +302,8 @@ function generatePDF() {
             const x = startX + colIndex * baseCellWidth;
             const y = startY;
 
-            // Draw cell border
-            doc.rect(x, y, baseCellWidth, cellHeight);
+            // Draw cell with modern border
+            doc.rect(x, y, baseCellWidth, cellHeight, 'FD'); // 'FD' for fill and stroke
 
             // Add text inside the cell with word wrapping
             const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
@@ -294,6 +354,13 @@ document.getElementById('pdf-cell-scale').addEventListener('input', (event) => {
     if (pdfCellScale > 3) pdfCellScale = 3; // Enforce maximum
     event.target.value = pdfCellScale;
     saveTimetable(); // Save the new scale
+});
+
+// Handle row type change
+document.getElementById('row-type').addEventListener('change', (event) => {
+    timeAsRows = event.target.value === 'time';
+    createTimetable(); // Recreate timetable with updated row type
+    saveTimetable();  // Save the new preference
 });
 
 // Initialize on load
