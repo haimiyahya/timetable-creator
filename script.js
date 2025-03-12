@@ -9,6 +9,7 @@ let TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${i + 8}:00 - ${i + 9}:00
 let currentDays = DAYS_MS; // Default to Malay
 let timetableName = 'Jadual Waktu'; // Default to Malay name
 let showWeekends = true; // Default to showing weekends
+let pdfCellScale = 1; // Default scaling factor for PDF cell size
 
 // Initialize timetable
 function createTimetable() {
@@ -84,7 +85,7 @@ function updateTimetableName() {
     }
 }
 
-// Save timetable, time slots, name, and weekend preference to LocalStorage
+// Save timetable, time slots, name, weekend preference, and cell scale to LocalStorage
 function saveTimetable() {
     // Save timetable entries
     const cells = document.querySelectorAll('.cell[contenteditable][data-day]');
@@ -105,6 +106,7 @@ function saveTimetable() {
     localStorage.setItem('language', currentDays === DAYS_MS ? 'malay' : 'english');
     localStorage.setItem('timetableName', timetableName);
     localStorage.setItem('showWeekends', showWeekends);
+    localStorage.setItem('pdfCellScale', pdfCellScale);
 }
 
 // Load timetable data (entries and time slots) from LocalStorage
@@ -128,7 +130,7 @@ function loadTimetableData() {
     }
 }
 
-// Load initial state (language, timetable, name, and weekends)
+// Load initial state (language, timetable, name, weekends, and cell scale)
 function loadInitialState() {
     // Load language preference
     const savedLanguage = localStorage.getItem('language') || 'malay';
@@ -140,6 +142,10 @@ function loadInitialState() {
     // Load weekend preference
     showWeekends = localStorage.getItem('showWeekends') === 'true'; // Default to true if not set
     document.getElementById('show-weekends').checked = showWeekends;
+
+    // Load PDF cell scale
+    pdfCellScale = parseFloat(localStorage.getItem('pdfCellScale')) || 1;
+    document.getElementById('pdf-cell-scale').value = pdfCellScale;
 
     // Update radio buttons and timetable name
     updateRadioButtons();
@@ -158,12 +164,15 @@ function clearTimetable() {
         localStorage.setItem('language', 'malay'); // Reset to Malay
         localStorage.setItem('timetableName', 'Jadual Waktu'); // Reset to Malay default
         localStorage.setItem('showWeekends', 'true'); // Reset to show weekends
+        localStorage.setItem('pdfCellScale', '1'); // Reset to default scale
         currentDays = DAYS_MS;
         timetableName = 'Jadual Waktu';
         showWeekends = true;
+        pdfCellScale = 1;
         updateRadioButtons();
         updateTimetableName();
         document.getElementById('show-weekends').checked = showWeekends;
+        document.getElementById('pdf-cell-scale').value = pdfCellScale;
         createTimetable();
     }
 }
@@ -176,7 +185,7 @@ function printTimetable() {
     document.querySelector('title').textContent = originalTitle; // Restore original title
 }
 
-// Generate PDF with current name
+// Generate PDF with dynamic cell size
 function generatePDF() {
     const doc = new jsPDF({
         orientation: 'landscape',
@@ -207,29 +216,41 @@ function generatePDF() {
         tableData.push(row);
     });
 
-    // Table dimensions
-    const cellWidth = 25;
-    const cellHeight = 7;
+    // Table dimensions with scaling
+    const baseCellWidth = 25 * pdfCellScale; // Scale the width
+    const baseCellHeight = 7; // Base height for a single line
+    const fontSize = 8; // Fixed font size for consistency
+    const lineHeight = fontSize * 0.5; // Approximate height per line
     const startX = 10;
-    const startY = 25;
+    let startY = 25;
 
-    // Draw the table
+    // Draw the table with dynamic heights
     doc.setLineWidth(0.3);
     doc.setDrawColor(0);
+    doc.setFontSize(fontSize);
 
     tableData.forEach((row, rowIndex) => {
+        // Calculate the height for this row based on the tallest cell
+        let maxLines = 1;
+        row.forEach(cell => {
+            const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
+            maxLines = Math.max(maxLines, lines.length);
+        });
+        const cellHeight = (baseCellHeight + (maxLines - 1) * lineHeight) * pdfCellScale; // Adjust height for lines
+
         row.forEach((cell, colIndex) => {
-            const x = startX + colIndex * cellWidth;
-            const y = startY + rowIndex * cellHeight;
+            const x = startX + colIndex * baseCellWidth;
+            const y = startY;
 
             // Draw cell border
-            doc.rect(x, y, cellWidth, cellHeight);
+            doc.rect(x, y, baseCellWidth, cellHeight);
 
             // Add text inside the cell with word wrapping
-            doc.setFontSize(8);
-            const lines = doc.splitTextToSize(cell, cellWidth - 2);
-            doc.text(lines, x + 1, y + 4, { maxWidth: cellWidth - 2 });
+            const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
+            doc.text(lines, x + 1, y + 4, { maxWidth: baseCellWidth - 2 });
         });
+
+        startY += cellHeight; // Move to the next row
     });
 
     doc.save('timetable.pdf');
@@ -264,6 +285,15 @@ document.getElementById('show-weekends').addEventListener('change', (event) => {
     showWeekends = event.target.checked;
     createTimetable(); // Recreate timetable with updated weekend setting
     saveTimetable();  // Save the new preference
+});
+
+// Handle PDF cell scale change
+document.getElementById('pdf-cell-scale').addEventListener('input', (event) => {
+    pdfCellScale = parseFloat(event.target.value) || 1;
+    if (pdfCellScale < 1) pdfCellScale = 1; // Enforce minimum
+    if (pdfCellScale > 3) pdfCellScale = 3; // Enforce maximum
+    event.target.value = pdfCellScale;
+    saveTimetable(); // Save the new scale
 });
 
 // Initialize on load
