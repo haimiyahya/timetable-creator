@@ -11,6 +11,10 @@ let currentDays = DAYS_MS; // Default to Malay
 // Initialize timetable
 function createTimetable() {
     const timetable = document.getElementById('timetable');
+    if (!timetable) {
+        console.error('Timetable element not found!');
+        return;
+    }
     timetable.innerHTML = '';
 
     // Create header row
@@ -44,7 +48,7 @@ function createTimetable() {
         });
     });
 
-    loadTimetable();
+    loadTimetable(); // Load data after creating the structure
 }
 
 // Save timetable and time slots to LocalStorage
@@ -95,7 +99,7 @@ function loadTimetable() {
     radioButtons.forEach(radio => {
         if (radio.value === savedLanguage) radio.checked = true;
     });
-    createTimetable(); // Recreate timetable with loaded language
+    // No need to call createTimetable here since it’s called on DOM load
 }
 
 // Clear timetable and time slots
@@ -189,5 +193,6 @@ document.querySelectorAll('input[name="language"]').forEach(radio => {
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
-    loadTimetable();
+    createTimetable(); // Ensure timetable is created first
+    loadTimetable();  // Then load data into it
 });
