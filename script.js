@@ -21,15 +21,16 @@ function createTimetable() {
     }
     timetable.innerHTML = '';
 
+    console.log('Creating timetable with orientation:', isTimeOnLeft ? 'Time on Left' : 'Days on Left');
+
     // Determine days to display based on showWeekends
-    const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6); // Exclude Saturday and Sunday
+    const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6);
 
     if (isTimeOnLeft) {
-        // Orientation: Days on top, Time on left
         displayDays.forEach((day, index) => {
             const cell = document.createElement('div');
             cell.className = 'cell header';
-            cell.textContent = index === 0 ? '' : day; // Empty first cell as per your request
+            cell.textContent = index === 0 ? '' : day;
             timetable.appendChild(cell);
         });
 
@@ -55,10 +56,9 @@ function createTimetable() {
 
         timetable.style.gridTemplateColumns = `repeat(${displayDays.length}, 1fr)`;
     } else {
-        // Orientation: Time on top, Days on left
         const headerCells = [document.createElement('div')];
         headerCells[0].className = 'cell header';
-        headerCells[0].textContent = ''; // Empty top-left cell
+        headerCells[0].textContent = '';
         TIME_SLOTS.forEach((time, timeIndex) => {
             const cell = document.createElement('div');
             cell.className = 'cell header time-slot';
@@ -90,11 +90,11 @@ function createTimetable() {
         timetable.style.gridTemplateColumns = `repeat(${1 + TIME_SLOTS.length}, 1fr)`;
     }
 
-    loadTimetableData(); // Load saved data
-    updateTimetableName(); // Update displayed and printable timetable name
+    loadTimetableData();
+    updateTimetableName();
 }
 
-// Update radio button checked state based on current language
+// Update radio button checked state
 function updateRadioButtons() {
     const radioButtons = document.querySelectorAll('input[name="language"]');
     const currentLanguage = currentDays === DAYS_MS ? 'malay' : 'english';
@@ -103,7 +103,7 @@ function updateRadioButtons() {
     });
 }
 
-// Update the displayed and printable timetable name
+// Update timetable name
 function updateTimetableName() {
     const nameElement = document.getElementById('timetable-name');
     const printNameElement = document.getElementById('print-timetable-name');
@@ -118,7 +118,7 @@ function updateTimetableName() {
     }
 }
 
-// Save timetable data to LocalStorage
+// Save timetable data
 function saveTimetable() {
     const cells = document.querySelectorAll('.cell[contenteditable][data-day]');
     const data = {};
@@ -140,7 +140,7 @@ function saveTimetable() {
     localStorage.setItem('isTimeOnLeft', isTimeOnLeft);
 }
 
-// Load timetable data from LocalStorage
+// Load timetable data
 function loadTimetableData() {
     const data = JSON.parse(localStorage.getItem('timetable') || '{}');
     const cells = document.querySelectorAll('.cell[contenteditable][data-day]');
@@ -161,6 +161,7 @@ function loadTimetableData() {
 
 // Load initial state
 function loadInitialState() {
+    console.log('Loading initial state...');
     const savedLanguage = localStorage.getItem('language') || 'malay';
     currentDays = savedLanguage === 'malay' ? DAYS_MS : DAYS_EN;
 
@@ -171,25 +172,20 @@ function loadInitialState() {
     pdfCellScale = parseFloat(localStorage.getItem('pdfCellScale')) || 1;
     document.getElementById('pdf-cell-scale').value = pdfCellScale;
 
-    isTimeOnLeft = localStorage.getItem('isTimeOnLeft') !== 'false'; // Default to true if not set
+    isTimeOnLeft = localStorage.getItem('isTimeOnLeft') !== 'false'; // Default to true
     document.getElementById('orientation-toggle').checked = isTimeOnLeft;
 
     updateRadioButtons();
     updateTimetableName();
     createTimetable();
+    console.log('Initial state loaded, timetable created.');
 }
 
-// Clear timetable and reset to defaults
+// Clear timetable
 function clearTimetable() {
     if (confirm('Are you sure you want to clear the timetable and reset time slots?')) {
-        localStorage.removeItem('timetable');
-        localStorage.removeItem('timeSlots');
+        localStorage.clear();
         TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${i + 8}:00 - ${i + 9}:00`);
-        localStorage.setItem('language', 'malay');
-        localStorage.setItem('timetableName', 'Jadual Waktu');
-        localStorage.setItem('showWeekends', 'true');
-        localStorage.setItem('pdfCellScale', '1');
-        localStorage.setItem('isTimeOnLeft', 'true');
         currentDays = DAYS_MS;
         timetableName = 'Jadual Waktu';
         showWeekends = true;
@@ -340,7 +336,7 @@ document.getElementById('show-weekends').addEventListener('change', (event) => {
     saveTimetable();
 });
 
-document.getElementById('pdf-cell-scale').addEventListener('input', (event) => {
+document.getElementById('pdf-cell-scale').addEventListener('click', (event) => {
     pdfCellScale = parseFloat(event.target.value) || 1;
     if (pdfCellScale < 1) pdfCellScale = 1;
     if (pdfCellScale > 3) pdfCellScale = 3;
@@ -372,7 +368,17 @@ document.getElementById('remove-slot-btn').addEventListener('click', () => {
     }
 });
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
-    loadInitialState();
-});
+// Initialize on load with fallback
+function initializeApp() {
+    console.log('Initializing app...');
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        loadInitialState();
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOMContentLoaded fired');
+            loadInitialState();
+        });
+    }
+}
+
+initializeApp();
