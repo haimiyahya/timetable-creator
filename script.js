@@ -7,6 +7,7 @@ const DAYS_MS = ['Masa', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu',
 // Default time slots (users can edit these)
 let TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${i + 8}:00 - ${i + 9}:00`); // 8 AM to 8 PM
 let currentDays = DAYS_MS; // Default to Malay
+let timetableName = 'Jadual Waktu'; // Default to Malay name
 
 // Initialize timetable
 function createTimetable() {
@@ -48,10 +49,35 @@ function createTimetable() {
         });
     });
 
-    loadTimetable(); // Load data after creating the structure
+    loadTimetableData(); // Load data after creating the structure
+    updateTimetableName(); // Update the displayed and printable timetable name
 }
 
-// Save timetable and time slots to LocalStorage
+// Update radio button checked state based on current language
+function updateRadioButtons() {
+    const radioButtons = document.querySelectorAll('input[name="language"]');
+    const currentLanguage = currentDays === DAYS_MS ? 'malay' : 'english';
+    radioButtons.forEach(radio => {
+        radio.checked = radio.value === currentLanguage;
+    });
+}
+
+// Update the displayed and printable timetable name
+function updateTimetableName() {
+    const nameElement = document.getElementById('timetable-name');
+    const printNameElement = document.getElementById('print-timetable-name');
+    if (nameElement && printNameElement) {
+        nameElement.textContent = timetableName;
+        printNameElement.textContent = timetableName; // Sync with printable version
+        nameElement.addEventListener('input', () => {
+            timetableName = nameElement.textContent.trim() || (currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable');
+            printNameElement.textContent = timetableName; // Update printable version
+            saveTimetable(); // Save the new name
+        });
+    }
+}
+
+// Save timetable, time slots, and name to LocalStorage
 function saveTimetable() {
     // Save timetable entries
     const cells = document.querySelectorAll('.cell[contenteditable][data-day]');
@@ -66,14 +92,15 @@ function saveTimetable() {
     const timeSlotsData = Array.from(timeSlotCells).map(cell => cell.textContent.trim());
     TIME_SLOTS = timeSlotsData;
 
-    // Store both in LocalStorage
+    // Store all in LocalStorage
     localStorage.setItem('timetable', JSON.stringify(data));
     localStorage.setItem('timeSlots', JSON.stringify(timeSlotsData));
     localStorage.setItem('language', currentDays === DAYS_MS ? 'malay' : 'english');
+    localStorage.setItem('timetableName', timetableName);
 }
 
-// Load timetable and time slots from LocalStorage
-function loadTimetable() {
+// Load timetable data (entries and time slots) from LocalStorage
+function loadTimetableData() {
     // Load timetable entries
     const data = JSON.parse(localStorage.getItem('timetable') || '{}');
     const cells = document.querySelectorAll('.cell[contenteditable][data-day]');
@@ -91,15 +118,23 @@ function loadTimetable() {
             cell.textContent = TIME_SLOTS[index];
         });
     }
+}
 
+// Load initial state (language, timetable, and name)
+function loadInitialState() {
     // Load language preference
     const savedLanguage = localStorage.getItem('language') || 'malay';
     currentDays = savedLanguage === 'malay' ? DAYS_MS : DAYS_EN;
-    const radioButtons = document.querySelectorAll('input[name="language"]');
-    radioButtons.forEach(radio => {
-        if (radio.value === savedLanguage) radio.checked = true;
-    });
-    // No need to call createTimetable here since it’s called on DOM load
+
+    // Load timetable name or set default based on language
+    timetableName = localStorage.getItem('timetableName') || (currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable');
+
+    // Update radio buttons and timetable name
+    updateRadioButtons();
+    updateTimetableName();
+
+    // Create timetable with the loaded language
+    createTimetable();
 }
 
 // Clear timetable and time slots
@@ -109,17 +144,24 @@ function clearTimetable() {
         localStorage.removeItem('timeSlots');
         TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${i + 8}:00 - ${i + 9}:00`); // Reset to default
         localStorage.setItem('language', 'malay'); // Reset to Malay
+        localStorage.setItem('timetableName', 'Jadual Waktu'); // Reset to Malay default
         currentDays = DAYS_MS;
+        timetableName = 'Jadual Waktu';
+        updateRadioButtons();
+        updateTimetableName();
         createTimetable();
     }
 }
 
-// Print timetable
+// Print timetable with the current name
 function printTimetable() {
+    const originalTitle = document.querySelector('title').textContent;
+    document.querySelector('title').textContent = timetableName; // Update title for print
     window.print();
+    document.querySelector('title').textContent = originalTitle; // Restore original title
 }
 
-// Generate PDF with current language
+// Generate PDF with current name
 function generatePDF() {
     const doc = new jsPDF({
         orientation: 'landscape',
@@ -127,9 +169,9 @@ function generatePDF() {
         format: 'a4'
     });
 
-    // Title
+    // Title using the current timetable name
     doc.setFontSize(16);
-    doc.text('Weekly Timetable', 10, 15);
+    doc.text(timetableName, 10, 15);
 
     // Prepare table data with current days
     const tableData = [];
@@ -186,13 +228,15 @@ document.getElementById('clear-btn').addEventListener('click', clearTimetable);
 document.querySelectorAll('input[name="language"]').forEach(radio => {
     radio.addEventListener('change', () => {
         currentDays = radio.value === 'malay' ? DAYS_MS : DAYS_EN;
-        createTimetable(); // Recreate timetable with new language
-        saveTimetable(); // Save the new language preference
+        timetableName = localStorage.getItem('timetableName') || (currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable'); // Reset to default if not set
+        updateRadioButtons();
+        updateTimetableName();
+        createTimetable();
+        saveTimetable();
     });
 });
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
-    createTimetable(); // Ensure timetable is created first
-    loadTimetable();  // Then load data into it
+    loadInitialState();
 });
