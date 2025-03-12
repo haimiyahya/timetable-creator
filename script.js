@@ -69,7 +69,7 @@ function printTimetable() {
     window.print();
 }
 
-// Generate PDF with a proper grid structure
+// Generate PDF with improved grid structure
 function generatePDF() {
     const doc = new jsPDF({
         orientation: 'landscape', // Better for wide timetables
@@ -79,13 +79,11 @@ function generatePDF() {
 
     // Title
     doc.setFontSize(16);
-    doc.text('Weekly Timetable', 10, 10);
+    doc.text('Weekly Timetable', 10, 15);
 
     // Prepare table data
     const tableData = [];
-    
-    // Add header row
-    tableData.push(DAYS);
+    tableData.push(DAYS); // Header row
 
     // Add time slots and corresponding entries
     TIME_SLOTS.forEach((time, timeIndex) => {
@@ -97,39 +95,5 @@ function generatePDF() {
         tableData.push(row);
     });
 
-    // Draw the table
-    const cellWidth = 35; // Width of each cell in mm
-    const cellHeight = 10; // Height of each cell in mm
-    const startX = 10; // Starting X position
-    const startY = 20; // Starting Y position after title
-    const pageWidth = doc.internal.pageSize.width;
-
-    // Set font size for the table
-    doc.setFontSize(10);
-
-    // Draw the table grid and content
-    tableData.forEach((row, rowIndex) => {
-        row.forEach((cell, colIndex) => {
-            const x = startX + colIndex * cellWidth;
-            const y = startY + rowIndex * cellHeight;
-
-            // Draw cell border
-            doc.setLineWidth(0.2);
-            doc.rect(x, y, cellWidth, cellHeight);
-
-            // Add text inside the cell
-            doc.text(cell, x + 2, y + 7); // Adjust text position inside the cell
-        });
-    });
-
-    // Save the PDF
-    doc.save('timetable.pdf');
-}
-
-// Event listeners
-document.getElementById('print-btn').addEventListener('click', printTimetable);
-document.getElementById('pdf-btn').addEventListener('click', generatePDF);
-document.getElementById('clear-btn').addEventListener('click', clearTimetable);
-
-// Initialize on load
-document.addEventListener('DOMContentLoaded', createTimetable);
+    // Table dimensions
+    const cellWidth = 25; // Reduced width to fi
