@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable Creator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Timetable Creator</h1>
+        <div class="controls">
+            <button id="addClass">Add Class</button>
+            <button id="printBtn">Print</button>
+            <button id="savePdfBtn">Save as PDF</button>
+            <button id="clearBtn">Clear Timetable</button>
+        </div>
+        <div class="customize">
+            <label>Background Color: <input type="color" id="bgColor" value="#ffffff"></label>
+            <label>Font: 
+                <select id="fontFamily">
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                </select>
+            </label>
+        </div>
+        <div id="timetable"></div>
+    </div>
+
+    <!-- Modal for adding class -->
+    <div id="classModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add Class</h2>
+            <form id="classForm">
+                <label>Subject: <input type="text" id="subject" required></label>
+                <label>Day: 
+                    <select id="day" required>
+                        <option value="Monday">Monday</option>
+                        <option value="Tuesday">Tuesday</option>
+                        <option value="Wednesday">Wednesday</option>
+                        <option value="Thursday">Thursday</option>
+                        <option value="Friday">Friday</option>
+                        <option value="Saturday">Saturday</option>
+                        <option value="Sunday">Sunday</option>
+                    </select>
+                </label>
+                <label>Start Time: <input type="time" id="startTime" required></label>
+                <label>End Time: <input type="time" id="endTime" required></label>
+                <label>Location: <input type="text" id="location"></label>
+                <label>Color: <input type="color" id="classColor" value="#87CEEB"></label>
+                <button type="submit">Add</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
