@@ -24,10 +24,11 @@ function createTimetable() {
     const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6); // Exclude Saturday and Sunday
 
     // Create header row
-    displayDays.forEach(day => {
+    displayDays.forEach((day, index) => {
         const cell = document.createElement('div');
         cell.className = 'cell header';
-        cell.textContent = day;
+        // Empty the first cell (time label), keep day names for others
+        cell.textContent = index === 0 ? '' : day;
         timetable.appendChild(cell);
     });
 
