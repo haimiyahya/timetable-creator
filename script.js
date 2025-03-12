@@ -96,4 +96,39 @@ function generatePDF() {
     });
 
     // Table dimensions
-    const cellWidth = 25; // Reduced width to fi
+    const cellWidth = 25; // Reduced width to fit more content
+    const cellHeight = 7; // Adjusted height for better spacing
+    const startX = 10;
+    const startY = 25; // Adjusted to leave space for title
+    const pageWidth = doc.internal.pageSize.width;
+
+    // Draw the table
+    doc.setLineWidth(0.3); // Increase line width for visibility
+    doc.setDrawColor(0); // Set border color to black
+
+    tableData.forEach((row, rowIndex) => {
+        row.forEach((cell, colIndex) => {
+            const x = startX + colIndex * cellWidth;
+            const y = startY + rowIndex * cellHeight;
+
+            // Draw cell border
+            doc.rect(x, y, cellWidth, cellHeight);
+
+            // Add text inside the cell with word wrapping
+            doc.setFontSize(8); // Smaller font to prevent overlap
+            const lines = doc.splitTextToSize(cell, cellWidth - 2); // Subtract padding
+            doc.text(lines, x + 1, y + 4, { maxWidth: cellWidth - 2 });
+        });
+    });
+
+    // Save the PDF
+    doc.save('timetable.pdf');
+}
+
+// Event listeners
+document.getElementById('print-btn').addEventListener('click', printTimetable);
+document.getElementById('pdf-btn').addEventListener('click', generatePDF);
+document.getElementById('clear-btn').addEventListener('click', clearTimetable);
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', createTimetable);
