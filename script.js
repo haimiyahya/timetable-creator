@@ -62,7 +62,7 @@ function createTimetable() {
     } else {
         // Days as Rows (columns are time slots, rows are days)
         // Create header row (time slots)
-        TIME_SLOTS.forEach(time => {
+        ['Day', ...TIME_SLOTS].forEach(time => {
             const cell = document.createElement('div');
             cell.className = 'cell header';
             cell.textContent = time;
@@ -73,25 +73,24 @@ function createTimetable() {
         displayDays.forEach((day, dayIndex) => {
             // Add day label as the first cell of the row
             const dayCell = document.createElement('div');
-            dayCell.className = 'cell time-slot'; // Use time-slot class for consistency
+            dayCell.className = 'cell time-slot';
             dayCell.textContent = day; // Day label (non-editable)
             timetable.appendChild(dayCell);
 
             // Add editable cells for each time slot
-            for (let timeIndex = 0; timeIndex < TIME_SLOTS.length; timeIndex++) {
+            TIME_SLOTS.forEach((time, timeIndex) => {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                if (timeIndex === 0) continue; // Skip the first time slot cell since day is already added
                 cell.setAttribute('contenteditable', 'true');
                 cell.dataset.day = day;
-                cell.dataset.time = TIME_SLOTS[timeIndex];
+                cell.dataset.time = time;
                 cell.addEventListener('input', saveTimetable);
                 timetable.appendChild(cell);
-            }
+            });
         });
 
-        // Adjust grid template columns based on number of time slots
-        timetable.style.gridTemplateColumns = `repeat(${TIME_SLOTS.length + 1}, 1fr)`; // +1 for the day column
+        // Adjust grid template columns based on number of time slots + 1 for day column
+        timetable.style.gridTemplateColumns = `repeat(${TIME_SLOTS.length + 1}, 1fr)`;
     }
 
     loadTimetableData(); // Load data after creating the structure
