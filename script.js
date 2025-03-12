@@ -71,26 +71,27 @@ function createTimetable() {
 
         // Create days and editable cells
         displayDays.forEach((day, dayIndex) => {
-            TIME_SLOTS.forEach((time, timeIndex) => {
+            // Add day label as the first cell of the row
+            const dayCell = document.createElement('div');
+            dayCell.className = 'cell time-slot'; // Use time-slot class for consistency
+            dayCell.textContent = day; // Day label (non-editable)
+            timetable.appendChild(dayCell);
+
+            // Add editable cells for each time slot
+            for (let timeIndex = 0; timeIndex < TIME_SLOTS.length; timeIndex++) {
                 const cell = document.createElement('div');
-                cell.className = 'cell' + (timeIndex === 0 ? ' time-slot' : '');
-                
-                if (timeIndex === 0) {
-                    // Make day label (acting as row header) non-editable
-                    cell.textContent = day;
-                } else {
-                    // Timetable entry cells
-                    cell.setAttribute('contenteditable', 'true');
-                    cell.dataset.day = day;
-                    cell.dataset.time = time;
-                    cell.addEventListener('input', saveTimetable);
-                }
+                cell.className = 'cell';
+                if (timeIndex === 0) continue; // Skip the first time slot cell since day is already added
+                cell.setAttribute('contenteditable', 'true');
+                cell.dataset.day = day;
+                cell.dataset.time = TIME_SLOTS[timeIndex];
+                cell.addEventListener('input', saveTimetable);
                 timetable.appendChild(cell);
-            });
+            }
         });
 
         // Adjust grid template columns based on number of time slots
-        timetable.style.gridTemplateColumns = `repeat(${TIME_SLOTS.length}, 1fr)`;
+        timetable.style.gridTemplateColumns = `repeat(${TIME_SLOTS.length + 1}, 1fr)`; // +1 for the day column
     }
 
     loadTimetableData(); // Load data after creating the structure
@@ -263,11 +264,11 @@ function generatePDF() {
         });
     } else {
         // Days as Rows (columns are time slots, rows are days)
-        tableData.push(TIME_SLOTS); // Header row (time slots)
+        tableData.push(['Day', ...TIME_SLOTS]); // Header row (day label + time slots)
 
         displayDays.forEach((day, dayIndex) => {
             const row = [day];
-            for (let timeIndex = 1; timeIndex < TIME_SLOTS.length; timeIndex++) {
+            for (let timeIndex = 0; timeIndex < TIME_SLOTS.length; timeIndex++) {
                 const cell = document.querySelector(`.cell[contenteditable][data-day="${day}"][data-time="${TIME_SLOTS[timeIndex]}"]`);
                 row.push(cell ? cell.textContent.trim() : '');
             }
