@@ -17,6 +17,13 @@
             <label><input type="checkbox" id="show-weekends" checked> Show Weekends</label>
             <label><input type="checkbox" id="orientation-toggle" checked> Time on Left</label>
             <label>PDF Cell Size Scale: <input type="number" id="pdf-cell-scale" min="1" max="3" step="0.1" value="1"></label>
+            <label>
+                Row Type:
+                <select id="row-type">
+                    <option value="time" selected>Time as Rows</option>
+                    <option value="days">Days as Rows</option>
+                </select>
+            </label>
             <button id="print-btn">Print Timetable</button>
             <button id="pdf-btn">Download as PDF</button>
             <button id="clear-btn">Clear Timetable</button>
