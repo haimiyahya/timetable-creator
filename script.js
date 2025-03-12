@@ -227,8 +227,15 @@ document.getElementById('clear-btn').addEventListener('click', clearTimetable);
 // Handle language change
 document.querySelectorAll('input[name="language"]').forEach(radio => {
     radio.addEventListener('change', () => {
+        const previousLanguage = currentDays === DAYS_MS ? 'malay' : 'english';
         currentDays = radio.value === 'malay' ? DAYS_MS : DAYS_EN;
-        timetableName = localStorage.getItem('timetableName') || (currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable'); // Reset to default if not set
+        
+        // Reset timetableName to default if it matches the previous language's default
+        const savedName = localStorage.getItem('timetableName');
+        if (!savedName || savedName === (previousLanguage === 'malay' ? 'Jadual Waktu' : 'Timetable')) {
+            timetableName = currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable';
+        }
+
         updateRadioButtons();
         updateTimetableName();
         createTimetable();
