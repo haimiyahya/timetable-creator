@@ -332,8 +332,31 @@ document.getElementById('clear-btn').addEventListener('click', clearTimetable);
 document.querySelectorAll('input[name="language"]').forEach(radio => {
     radio.addEventListener('change', () => {
         const previousLanguage = currentDays === DAYS_MS ? 'malay' : 'english';
+        const oldDays = currentDays;
         currentDays = radio.value === 'malay' ? DAYS_MS : DAYS_EN;
-        
+
+        // Preserve timetable data before switching
+        const oldData = JSON.parse(localStorage.getItem('timetable') || '{}');
+        const newData = {};
+        const oldDisplayDays = showWeekends ? oldDays : oldDays.slice(0, 6);
+        const newDisplayDays = showWeekends ? currentDays : currentDays.slice(0, 6);
+
+        TIME_SLOTS.forEach(time => {
+            oldDisplayDays.slice(1).forEach((oldDay, index) => {
+                const oldKey = `${oldDay}-${time}`;
+                const newDay = newDisplayDays[index + 1]; // Map to new day name
+                const newKey = `${newDay}-${time}`;
+                if (oldData[oldKey]) {
+                    newData[newKey] = oldData[oldKey]; // Transfer value to new key
+                    console.log(`Mapping ${oldKey} to ${newKey}: ${oldData[oldKey]}`);
+                }
+            });
+        });
+
+        // Update LocalStorage with new data
+        localStorage.setItem('timetable', JSON.stringify(newData));
+
+        // Update timetable name if it’s the default
         const savedName = localStorage.getItem('timetableName');
         if (!savedName || savedName === (previousLanguage === 'malay' ? 'Jadual Waktu' : 'Timetable')) {
             timetableName = currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable';
@@ -392,7 +415,6 @@ document.getElementById('remove-slot-btn').addEventListener('click', () => {
             console.log('Removing time slot:', timeToRemove, 'at index:', indexToRemove);
             TIME_SLOTS.splice(indexToRemove, 1);
 
-            // Update stored data by removing entries for this time slot
             const data = JSON.parse(localStorage.getItem('timetable') || '{}');
             const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6);
             displayDays.slice(1).forEach(day => {
