@@ -46,7 +46,8 @@ function restoreState(state) {
     isTimeOnLeft = state.isTimeOnLeft;
 
     document.getElementById('show-weekends').checked = showWeekends;
-    document.getElementById('pdf-cell-scale').value = pdfCellScale;
+    document.getElementById('pdf-cell-scale').value = (pdfCellScale * 100).toFixed(0);
+    document.getElementById('pdf-cell-scale-custom').style.display = 'none';
     document.getElementById('orientation-toggle').checked = isTimeOnLeft;
     updateRadioButtons();
     updateTimetableName();
@@ -231,7 +232,17 @@ function loadInitialState() {
     document.getElementById('show-weekends').checked = showWeekends;
 
     pdfCellScale = parseFloat(localStorage.getItem('pdfCellScale')) || 1;
-    document.getElementById('pdf-cell-scale').value = pdfCellScale;
+    const pdfScaleSelect = document.getElementById('pdf-cell-scale');
+    const savedPercentage = (pdfCellScale * 100).toFixed(0);
+    const predefinedOption = pdfScaleSelect.querySelector(`option[value="${savedPercentage}"]`);
+    if (predefinedOption) {
+        pdfScaleSelect.value = savedPercentage;
+    } else {
+        pdfScaleSelect.value = 'custom';
+        const customInput = document.getElementById('pdf-cell-scale-custom');
+        customInput.value = savedPercentage;
+        customInput.style.display = 'inline-block';
+    }
 
     isTimeOnLeft = localStorage.getItem('isTimeOnLeft') !== 'false';
     document.getElementById('orientation-toggle').checked = isTimeOnLeft;
@@ -257,7 +268,8 @@ function clearTimetable() {
         updateRadioButtons();
         updateTimetableName();
         document.getElementById('show-weekends').checked = showWeekends;
-        document.getElementById('pdf-cell-scale').value = pdfCellScale;
+        document.getElementById('pdf-cell-scale').value = (pdfCellScale * 100).toFixed(0);
+        document.getElementById('pdf-cell-scale-custom').style.display = 'none';
         document.getElementById('orientation-toggle').checked = isTimeOnLeft;
         createTimetable();
         saveTimetable();
@@ -274,6 +286,7 @@ function printTimetable() {
 
 // Generate PDF
 function generatePDF() {
+    console.log('Generating PDF with pdfCellScale:', pdfCellScale); // Debug log
     const doc = new jsPDF({
         orientation: 'landscape',
         unit: 'mm',
@@ -320,14 +333,15 @@ function generatePDF() {
         });
     }
 
-    const baseCellWidth = 25 * pdfCellScale;
-    const baseCellHeight = 7;
-    const fontSize = 8;
+    const baseCellWidth = 15 * pdfCellScale; // Reduced base width for noticeable scaling
+    const baseCellHeight = 7 * pdfCellScale;
+    console.log('Base Cell Width:', baseCellWidth, 'Base Cell Height:', baseCellHeight); // Debug log
+    const fontSize = 8 * pdfCellScale; // Scale font size with cells
     const lineHeight = fontSize * 0.4;
     const startX = margin;
     let startY = margin + 15;
 
-    doc.setLineWidth(0.2);
+    doc.setLineWidth(0.2 * pdfCellScale);
     doc.setDrawColor(224, 224, 224);
     doc.setFontSize(fontSize);
 
@@ -338,7 +352,7 @@ function generatePDF() {
             const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
             maxLines = Math.max(maxLines, lines.length);
         });
-        const cellHeight = (baseCellHeight + (maxLines - 1) * lineHeight) * pdfCellScale;
+        const cellHeight = (baseCellHeight + (maxLines - 1) * lineHeight);
 
         if (currentY + cellHeight > maxContentHeight) {
             doc.addPage();
@@ -419,15 +433,6 @@ document.getElementById('show-weekends').addEventListener('change', (event) => {
     saveState();
     showWeekends = event.target.checked;
     createTimetable();
-    saveTimetable();
-});
-
-document.getElementById('pdf-cell-scale').addEventListener('input', (event) => {
-    saveState();
-    pdfCellScale = parseFloat(event.target.value) || 1;
-    if (pdfCellScale < 1) pdfCellScale = 1;
-    if (pdfCellScale > 3) pdfCellScale = 3;
-    event.target.value = pdfCellScale;
     saveTimetable();
 });
 
@@ -554,6 +559,50 @@ document.getElementById('redo-btn').addEventListener('click', () => {
         updateUndoRedoButtons();
         console.log('Redo performed, restored state:', nextState);
     }
+});
+
+// Handle dropdown changes
+document.getElementById('pdf-cell-scale').addEventListener('change', (event) => {
+    saveState();
+    const selectedValue = event.target.value;
+
+    if (selectedValue === 'custom') {
+        const customInput = document.getElementById('pdf-cell-scale-custom');
+        customInput.style.display = 'inline-block';
+        customInput.value = (pdfCellScale * 100).toFixed(0); // Show current scale as percentage
+        customInput.focus();
+        return; // Wait for custom input to set the value
+    }
+
+    // Convert percentage to decimal
+    let scale = parseFloat(selectedValue) / 100;
+    pdfCellScale = Math.max(0.25, Math.min(2, scale)); // Clamp between 25% (0.25) and 200% (2)
+    console.log('PDF Cell Size Scale updated to:', pdfCellScale, `(Selected: ${selectedValue}%)`);
+
+    // Hide custom input if not in use
+    document.getElementById('pdf-cell-scale-custom').style.display = 'none';
+    saveTimetable();
+});
+
+// Handle custom input changes
+document.getElementById('pdf-cell-scale-custom').addEventListener('change', (event) => {
+    saveState();
+    let customValue = parseInt(event.target.value) || 100; // Default to 100% if invalid
+    customValue = Math.max(25, Math.min(200, customValue)); // Clamp between 25% and 200%
+    pdfCellScale = customValue / 100;
+
+    const dropdown = document.getElementById('pdf-cell-scale');
+    // Check if the custom value matches a predefined option
+    const predefinedOption = dropdown.querySelector(`option[value="${customValue}"]`);
+    if (predefinedOption) {
+        dropdown.value = customValue; // Set to predefined value if it exists
+    } else {
+        dropdown.value = 'custom'; // Keep as "Custom..." if not a predefined value
+    }
+
+    event.target.style.display = 'none'; // Hide custom input after setting
+    saveTimetable();
+    console.log('Custom PDF Cell Size Scale updated to:', pdfCellScale, `(Custom: ${customValue}%)`);
 });
 
 // Initialize on load with fallback
