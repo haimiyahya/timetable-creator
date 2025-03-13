@@ -134,3 +134,23 @@ button:hover {
     background-color: #e9ecef; /* Match time-slot styling */
     color: #333;
 }
+
+#undo-btn, #redo-btn {
+    background-color: #6c757d; /* Gray */
+    color: white;
+    padding: 5px 10px;
+    margin: 5px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#undo-btn:hover:enabled, #redo-btn:hover:enabled {
+    background-color: #5a6268;
+}
+
+#undo-btn:disabled, #redo-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+

@@ -12,17 +12,19 @@
         <div id="timetable-name" class="timetable-name" contenteditable="true">Timetable Creator</div>
         <div id="print-timetable-name" class="print-timetable-name"></div> <!-- Printable version -->
         <div class="controls">
-            <label><input type="radio" name="language" value="malay" checked> Malay</label>
-            <label><input type="radio" name="language" value="english"> English</label>
-            <label><input type="checkbox" id="show-weekends" checked> Show Weekends</label>
-            <label><input type="checkbox" id="orientation-toggle" checked> Time on Left</label>
-            <label>PDF Cell Size Scale: <input type="number" id="pdf-cell-scale" min="1" max="3" step="0.1" value="1"></label>
-            <button id="print-btn">Print Timetable</button>
-            <button id="pdf-btn">Download as PDF</button>
-            <button id="clear-btn">Clear Timetable</button>
-            <button id="add-slot-btn">Add Time Slot</button>
-            <button id="remove-slot-btn">Remove Time Slot</button>
-        </div>
+          <label><input type="radio" name="language" value="malay" checked> Malay</label>
+          <label><input type="radio" name="language" value="english"> English</label>
+          <label><input type="checkbox" id="show-weekends" checked> Show Weekends</label>
+          <label><input type="checkbox" id="orientation-toggle" checked> Time on Left</label>
+          <label>PDF Cell Size Scale: <input type="number" id="pdf-cell-scale" min="1" max="3" step="0.1" value="1"></label>
+          <button id="print-btn">Print Timetable</button>
+          <button id="pdf-btn">Download as PDF</button>
+          <button id="clear-btn">Clear Timetable</button>
+          <button id="add-slot-btn">Add Time Slot</button>
+          <button id="remove-slot-btn">Remove Time Slot</button>
+          <button id="undo-btn" disabled>Undo</button>
+          <button id="redo-btn" disabled>Redo</button>
+      </div>
         <div id="timetable" class="timetable">
             <!-- Timetable will be dynamically generated -->
         </div>

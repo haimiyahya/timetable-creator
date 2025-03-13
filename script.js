@@ -4,14 +4,61 @@ const { jsPDF } = window.jspdf;
 const DAYS_EN = ['Time', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DAYS_MS = ['Masa', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu', 'Ahad'];
 
-// Default time slots (users can edit these)
-let TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${i + 8}:00 - ${i + 9}:00`); // 8 AM to 8 PM
-let currentDays = DAYS_MS; // Default to Malay
-let timetableName = 'Jadual Waktu'; // Default to Malay name
-let showWeekends = true; // Default to showing weekends
-let pdfCellScale = 1; // Default scaling factor for PDF cell size
-let isTimeOnLeft = true; // Default orientation: time on left, days on top
-let lastFocusedCell = null; // Track the last focused editable cell
+// Default time slots and app state
+let TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${i + 8}:00 - ${i + 9}:00`);
+let currentDays = DAYS_MS;
+let timetableName = 'Jadual Waktu';
+let showWeekends = true;
+let pdfCellScale = 1;
+let isTimeOnLeft = true;
+let lastFocusedCell = null;
+
+// Undo/Redo stacks
+let undoStack = [];
+let redoStack = [];
+
+// Save current state to undo stack
+function saveState() {
+    const state = {
+        timetable: JSON.parse(localStorage.getItem('timetable') || '{}'),
+        timeSlots: [...TIME_SLOTS],
+        language: currentDays === DAYS_MS ? 'malay' : 'english',
+        timetableName: timetableName,
+        showWeekends: showWeekends,
+        pdfCellScale: pdfCellScale,
+        isTimeOnLeft: isTimeOnLeft
+    };
+    undoStack.push(state);
+    redoStack = []; // Clear redo stack on new action
+    console.log('Saved state to undo stack:', state);
+    updateUndoRedoButtons();
+}
+
+// Restore state from stack
+function restoreState(state) {
+    if (!state) return;
+    localStorage.setItem('timetable', JSON.stringify(state.timetable));
+    TIME_SLOTS = [...state.timeSlots];
+    currentDays = state.language === 'malay' ? DAYS_MS : DAYS_EN;
+    timetableName = state.timetableName;
+    showWeekends = state.showWeekends;
+    pdfCellScale = state.pdfCellScale;
+    isTimeOnLeft = state.isTimeOnLeft;
+
+    document.getElementById('show-weekends').checked = showWeekends;
+    document.getElementById('pdf-cell-scale').value = pdfCellScale;
+    document.getElementById('orientation-toggle').checked = isTimeOnLeft;
+    updateRadioButtons();
+    updateTimetableName();
+    createTimetable();
+    console.log('Restored state:', state);
+}
+
+// Update Undo/Redo button states
+function updateUndoRedoButtons() {
+    document.getElementById('undo-btn').disabled = undoStack.length === 0;
+    document.getElementById('redo-btn').disabled = redoStack.length === 0;
+}
 
 // Initialize timetable
 function createTimetable() {
@@ -127,6 +174,7 @@ function updateTimetableName() {
         nameElement.textContent = timetableName;
         printNameElement.textContent = timetableName;
         nameElement.addEventListener('input', () => {
+            saveState();
             timetableName = nameElement.textContent.trim() || (currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable');
             printNameElement.textContent = timetableName;
             saveTimetable();
@@ -194,12 +242,14 @@ function loadInitialState() {
     updateRadioButtons();
     updateTimetableName();
     createTimetable();
+    saveState();
     console.log('Initial state loaded, timetable created.');
 }
 
 // Clear timetable
 function clearTimetable() {
     if (confirm('Are you sure you want to clear the timetable and reset time slots?')) {
+        saveState();
         localStorage.clear();
         TIME_SLOTS = Array.from({ length: 12 }, (_, i) => `${i + 8}:00 - ${i + 9}:00`);
         currentDays = DAYS_MS;
@@ -213,6 +263,7 @@ function clearTimetable() {
         document.getElementById('pdf-cell-scale').value = pdfCellScale;
         document.getElementById('orientation-toggle').checked = isTimeOnLeft;
         createTimetable();
+        saveTimetable();
     }
 }
 
@@ -331,11 +382,11 @@ document.getElementById('clear-btn').addEventListener('click', clearTimetable);
 
 document.querySelectorAll('input[name="language"]').forEach(radio => {
     radio.addEventListener('change', () => {
+        saveState();
         const previousLanguage = currentDays === DAYS_MS ? 'malay' : 'english';
         const oldDays = currentDays;
         currentDays = radio.value === 'malay' ? DAYS_MS : DAYS_EN;
 
-        // Preserve timetable data before switching
         const oldData = JSON.parse(localStorage.getItem('timetable') || '{}');
         const newData = {};
         const oldDisplayDays = showWeekends ? oldDays : oldDays.slice(0, 6);
@@ -344,19 +395,17 @@ document.querySelectorAll('input[name="language"]').forEach(radio => {
         TIME_SLOTS.forEach(time => {
             oldDisplayDays.slice(1).forEach((oldDay, index) => {
                 const oldKey = `${oldDay}-${time}`;
-                const newDay = newDisplayDays[index + 1]; // Map to new day name
+                const newDay = newDisplayDays[index + 1];
                 const newKey = `${newDay}-${time}`;
                 if (oldData[oldKey]) {
-                    newData[newKey] = oldData[oldKey]; // Transfer value to new key
+                    newData[newKey] = oldData[oldKey];
                     console.log(`Mapping ${oldKey} to ${newKey}: ${oldData[oldKey]}`);
                 }
             });
         });
 
-        // Update LocalStorage with new data
         localStorage.setItem('timetable', JSON.stringify(newData));
 
-        // Update timetable name if it’s the default
         const savedName = localStorage.getItem('timetableName');
         if (!savedName || savedName === (previousLanguage === 'malay' ? 'Jadual Waktu' : 'Timetable')) {
             timetableName = currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable';
@@ -370,12 +419,14 @@ document.querySelectorAll('input[name="language"]').forEach(radio => {
 });
 
 document.getElementById('show-weekends').addEventListener('change', (event) => {
+    saveState();
     showWeekends = event.target.checked;
     createTimetable();
     saveTimetable();
 });
 
 document.getElementById('pdf-cell-scale').addEventListener('input', (event) => {
+    saveState();
     pdfCellScale = parseFloat(event.target.value) || 1;
     if (pdfCellScale < 1) pdfCellScale = 1;
     if (pdfCellScale > 3) pdfCellScale = 3;
@@ -384,12 +435,14 @@ document.getElementById('pdf-cell-scale').addEventListener('input', (event) => {
 });
 
 document.getElementById('orientation-toggle').addEventListener('change', (event) => {
+    saveState();
     isTimeOnLeft = event.target.checked;
     createTimetable();
     saveTimetable();
 });
 
 document.getElementById('add-slot-btn').addEventListener('click', () => {
+    saveState();
     const lastSlot = TIME_SLOTS[TIME_SLOTS.length - 1];
     const [start] = lastSlot.split(' - ');
     const [hour, minute] = start.split(':');
@@ -405,13 +458,26 @@ document.getElementById('remove-slot-btn').addEventListener('click', () => {
         return;
     }
 
+    saveState();
     console.log('Remove button clicked, last focused cell:', lastFocusedCell);
 
-    if (lastFocusedCell && lastFocusedCell.hasAttribute('contenteditable') && lastFocusedCell.dataset.time) {
-        const timeToRemove = lastFocusedCell.dataset.time;
-        const indexToRemove = TIME_SLOTS.indexOf(timeToRemove);
-        
-        if (indexToRemove !== -1) {
+    if (lastFocusedCell && lastFocusedCell.hasAttribute('contenteditable')) {
+        let indexToRemove;
+        let timeToRemove;
+
+        if (lastFocusedCell.classList.contains('time-slot') && lastFocusedCell.dataset.timeIndex !== undefined) {
+            // Time slot cell: use dataset.timeIndex
+            indexToRemove = parseInt(lastFocusedCell.dataset.timeIndex);
+            timeToRemove = TIME_SLOTS[indexToRemove];
+            console.log('Focused time slot cell, index:', indexToRemove, 'time:', timeToRemove);
+        } else if (lastFocusedCell.dataset.time) {
+            // Other cell: use dataset.time
+            timeToRemove = lastFocusedCell.dataset.time;
+            indexToRemove = TIME_SLOTS.indexOf(timeToRemove);
+            console.log('Focused content cell, time:', timeToRemove, 'index:', indexToRemove);
+        }
+
+        if (indexToRemove >= 0 && indexToRemove < TIME_SLOTS.length) {
             console.log('Removing time slot:', timeToRemove, 'at index:', indexToRemove);
             TIME_SLOTS.splice(indexToRemove, 1);
 
@@ -424,15 +490,56 @@ document.getElementById('remove-slot-btn').addEventListener('click', () => {
             });
             localStorage.setItem('timetable', JSON.stringify(data));
         } else {
-            console.log('Time slot not found in TIME_SLOTS, no action taken');
+            console.log('Invalid index, falling back to removing last slot');
+            TIME_SLOTS.pop();
         }
     } else {
-        console.log('No valid cell with time slot focused, removing last slot as fallback');
+        console.log('No valid cell focused, removing last slot as fallback');
         TIME_SLOTS.pop();
     }
 
     createTimetable();
     saveTimetable();
+});
+
+// Undo action
+document.getElementById('undo-btn').addEventListener('click', () => {
+    if (undoStack.length > 0) {
+        const currentState = {
+            timetable: JSON.parse(localStorage.getItem('timetable') || '{}'),
+            timeSlots: [...TIME_SLOTS],
+            language: currentDays === DAYS_MS ? 'malay' : 'english',
+            timetableName: timetableName,
+            showWeekends: showWeekends,
+            pdfCellScale: pdfCellScale,
+            isTimeOnLeft: isTimeOnLeft
+        };
+        redoStack.push(currentState);
+        const previousState = undoStack.pop();
+        restoreState(previousState);
+        updateUndoRedoButtons();
+        console.log('Undo performed, restored state:', previousState);
+    }
+});
+
+// Redo action
+document.getElementById('redo-btn').addEventListener('click', () => {
+    if (redoStack.length > 0) {
+        const currentState = {
+            timetable: JSON.parse(localStorage.getItem('timetable') || '{}'),
+            timeSlots: [...TIME_SLOTS],
+            language: currentDays === DAYS_MS ? 'malay' : 'english',
+            timetableName: timetableName,
+            showWeekends: showWeekends,
+            pdfCellScale: pdfCellScale,
+            isTimeOnLeft: isTimeOnLeft
+        };
+        undoStack.push(currentState);
+        const nextState = redoStack.pop();
+        restoreState(nextState);
+        updateUndoRedoButtons();
+        console.log('Redo performed, restored state:', nextState);
+    }
 });
 
 // Initialize on load with fallback
