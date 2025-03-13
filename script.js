@@ -440,11 +440,28 @@ document.getElementById('orientation-toggle').addEventListener('change', (event)
 
 document.getElementById('add-slot-btn').addEventListener('click', () => {
     saveState();
-    const lastSlot = TIME_SLOTS[TIME_SLOTS.length - 1];
+    let insertIndex = TIME_SLOTS.length; // Default to end if no focus
+
+    if (lastFocusedCell && lastFocusedCell.hasAttribute('contenteditable')) {
+        if (lastFocusedCell.classList.contains('time-slot') && lastFocusedCell.dataset.timeIndex !== undefined) {
+            // Time slot cell: insert before this index
+            insertIndex = parseInt(lastFocusedCell.dataset.timeIndex) + 1;
+            console.log('Adding slot before time slot index:', insertIndex);
+        } else if (lastFocusedCell.dataset.time) {
+            // Content cell: find index of current time
+            const currentTime = lastFocusedCell.dataset.time;
+            insertIndex = TIME_SLOTS.indexOf(currentTime) + 1;
+            console.log('Adding slot before content cell time:', currentTime, 'at index:', insertIndex);
+        }
+    }
+
+    const lastSlot = insertIndex > 0 ? TIME_SLOTS[insertIndex - 1] : TIME_SLOTS[TIME_SLOTS.length - 1];
     const [start] = lastSlot.split(' - ');
     const [hour, minute] = start.split(':');
     const newHour = (parseInt(hour) + 1) % 24;
-    TIME_SLOTS.push(`${newHour}:00 - ${newHour + 1}:00`);
+    const newTimeSlot = `${newHour}:00 - ${newHour + 1}:00`;
+    TIME_SLOTS.splice(insertIndex, 0, newTimeSlot);
+
     createTimetable();
     saveTimetable();
 });
