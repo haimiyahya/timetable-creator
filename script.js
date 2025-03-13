@@ -169,14 +169,11 @@ function updateRadioButtons() {
 // Update timetable name
 function updateTimetableName() {
     const nameElement = document.getElementById('timetable-name');
-    const printNameElement = document.getElementById('print-timetable-name');
-    if (nameElement && printNameElement) {
-        nameElement.textContent = timetableName;
-        printNameElement.textContent = timetableName;
+    if (nameElement) {
+        nameElement.textContent = timetableName || (currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable');
         nameElement.addEventListener('input', () => {
             saveState();
             timetableName = nameElement.textContent.trim() || (currentDays === DAYS_MS ? 'Jadual Waktu' : 'Timetable');
-            printNameElement.textContent = timetableName;
             saveTimetable();
         });
     }
@@ -270,7 +267,7 @@ function clearTimetable() {
 // Print timetable
 function printTimetable() {
     const originalTitle = document.querySelector('title').textContent;
-    document.querySelector('title').textContent = timetableName;
+    document.querySelector('title').textContent = document.getElementById('timetable-name').textContent;
     window.print();
     document.querySelector('title').textContent = originalTitle;
 }
@@ -290,7 +287,7 @@ function generatePDF() {
 
     doc.setFontSize(16);
     doc.setTextColor(51, 51, 51);
-    doc.text(timetableName, margin, margin + 5);
+    doc.text(document.getElementById('timetable-name').textContent, margin, margin + 5);
 
     const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6);
     const tableData = [];

@@ -1,156 +1,186 @@
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 20px;
-}
-
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-.timetable-name {
-    font-size: 24px;
-    font-weight: bold;
+    font-family: 'Arial', sans-serif;
+    margin: 20px;
+    background-color: #f4f7fa;
     color: #333;
-    margin-bottom: 20px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    min-height: 30px;
-    display: inline-block;
-}
-
-.timetable-name:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-}
-
-.print-timetable-name {
-    display: none; /* Hidden by default */
-    font-size: 24px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 20px;
 }
 
 .controls {
-    margin: 20px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.controls label {
-    margin: 0 10px;
+.button-group, .settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    background-color: #fafafa;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.controls input[type="number"] {
-    width: 60px;
-    padding: 5px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+.button-group h3, .settings-group h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
 }
 
 button {
-    padding: 10px 20px;
-    margin: 0 10px;
-    background-color: #007bff;
-    color: white;
+    padding: 8px 12px;
+    font-size: 14px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    color: white;
 }
 
-button:hover {
-    background-color: #0056b3;
+button:hover:enabled {
+    background: linear-gradient(135deg, #5a6268, #495057);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.timetable {
+button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Specific button styles */
+#add-slot-btn, #remove-slot-btn {
+    background: linear-gradient(135deg, #28a745, #218838);
+}
+
+#add-slot-btn:hover:enabled, #remove-slot-btn:hover:enabled {
+    background: linear-gradient(135deg, #218838, #1e7e34);
+}
+
+#clear-btn {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+#clear-btn:hover:enabled {
+    background: linear-gradient(135deg, #c82333, #bd2130);
+}
+
+#print-btn, #pdf-btn {
+    background: linear-gradient(135deg, #007bff, #0069d9);
+}
+
+#print-btn:hover:enabled, #pdf-btn:hover:enabled {
+    background: linear-gradient(135deg, #0069d9, #0056b3);
+}
+
+#undo-btn, #redo-btn {
+    background: linear-gradient(135deg, #6f42c1, #5e37a6);
+}
+
+#undo-btn:hover:enabled, #redo-btn:hover:enabled {
+    background: linear-gradient(135deg, #5e37a6, #50308f);
+}
+
+.settings-group {
+    flex: 1;
+    min-width: 250px;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.setting-item label {
+    font-size: 14px;
+    color: #444;
+}
+
+.setting-item input[type="radio"],
+.setting-item input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+.setting-item input[type="number"] {
+    width: 60px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Timetable styles (unchanged) */
+#timetable {
     display: grid;
-    grid-template-columns: repeat(8, 1fr); /* Default to 8 columns (Time + 7 days) */
-    gap: 2px;
+    gap: 1px;
     background-color: #ddd;
-    padding: 2px;
     border-radius: 5px;
+    overflow: hidden;
 }
 
 .cell {
-    background-color: white;
     padding: 10px;
-    min-height: 50px;
-    border: 0.5px solid #e0e0e0; /* Thinner border with a lighter gray for a modern look */
-    position: relative;
-    cursor: pointer;
+    background-color: white;
+    border: none;
+    min-height: 20px;
 }
 
-.cell:hover {
-    background-color: #f0f0f0;
-}
-
-.cell[contenteditable="true"] {
-    outline: none;
-}
-
-.header {
+.cell.header {
     background-color: #007bff;
     color: white;
     font-weight: bold;
     text-align: center;
-    border: 0.5px solid #e0e0e0; /* Match the thinner, modern border */
 }
 
-.time-slot {
+.cell.time-slot {
     background-color: #e9ecef;
-    font-size: 0.9em;
-    text-align: center;
-    border: 0.5px solid #e0e0e0; /* Match the thinner, modern border */
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .timetable {
-        grid-template-columns: repeat(4, 1fr); /* Adjust for smaller screens */
-    }
+    font-weight: bold;
 }
 
 @media print {
-    .controls, .timetable-name {
+    .controls, #print-timetable-name {
         display: none;
     }
-    .print-timetable-name {
-        display: block; /* Show printable name during print */
+    #timetable-name {
+        text-align: center;
+        margin-bottom: 20px;
     }
-    .timetable {
-        gap: 0;
-        border: none;
+    #timetable {
+        border: 1px solid #000;
     }
     .cell {
-        border: 1px solid #000; /* Keep print borders thicker for clarity */
+        border: 1px solid #ccc;
     }
 }
 
-.cell.header.time-slot {
-    background-color: #e9ecef; /* Match time-slot styling */
-    color: #333;
-}
-
-#undo-btn, #redo-btn {
-    background-color: #6c757d; /* Gray */
-    color: white;
-    padding: 5px 10px;
-    margin: 5px;
+.cell {
+    padding: 10px;
+    background-color: white;
     border: none;
-    border-radius: 3px;
-    cursor: pointer;
+    min-height: 20px;
+    color: #333; /* Default text color for all cells */
 }
 
-#undo-btn:hover:enabled, #redo-btn:hover:enabled {
-    background-color: #5a6268;
+.cell.header {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+    text-align: center;
 }
 
-#undo-btn:disabled, #redo-btn:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
+.cell.time-slot {
+    background-color: #e9ecef;
+    font-weight: bold;
+    color: #333; /* Ensure dark text for time slots in both orientations */
 }
-
