@@ -11,6 +11,7 @@ let timetableName = 'Jadual Waktu'; // Default to Malay name
 let showWeekends = true; // Default to showing weekends
 let pdfCellScale = 1; // Default scaling factor for PDF cell size
 let isTimeOnLeft = true; // Default orientation: time on left, days on top
+let lastFocusedCell = null; // Track the last focused editable cell
 
 // Initialize timetable
 function createTimetable() {
@@ -23,7 +24,6 @@ function createTimetable() {
 
     console.log('Creating timetable with orientation:', isTimeOnLeft ? 'Time on Left' : 'Days on Left');
 
-    // Determine days to display based on showWeekends
     const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6);
 
     if (isTimeOnLeft) {
@@ -44,11 +44,19 @@ function createTimetable() {
                     cell.textContent = time;
                     cell.dataset.timeIndex = timeIndex;
                     cell.addEventListener('input', saveTimetable);
+                    cell.addEventListener('focus', () => {
+                        lastFocusedCell = cell;
+                        console.log('Focused cell:', cell.textContent, 'with time:', time);
+                    });
                 } else {
                     cell.setAttribute('contenteditable', 'true');
                     cell.dataset.day = day;
                     cell.dataset.time = time;
                     cell.addEventListener('input', saveTimetable);
+                    cell.addEventListener('focus', () => {
+                        lastFocusedCell = cell;
+                        console.log('Focused cell for day:', day, 'time:', time);
+                    });
                 }
                 timetable.appendChild(cell);
             });
@@ -66,6 +74,10 @@ function createTimetable() {
             cell.textContent = time;
             cell.dataset.timeIndex = timeIndex;
             cell.addEventListener('input', saveTimetable);
+            cell.addEventListener('focus', () => {
+                lastFocusedCell = cell;
+                console.log('Focused time slot:', time);
+            });
             headerCells.push(cell);
         });
         headerCells.forEach(cell => timetable.appendChild(cell));
@@ -83,6 +95,10 @@ function createTimetable() {
                 cell.dataset.day = day;
                 cell.dataset.time = time;
                 cell.addEventListener('input', saveTimetable);
+                cell.addEventListener('focus', () => {
+                    lastFocusedCell = cell;
+                    console.log('Focused cell for day:', day, 'time:', time);
+                });
                 timetable.appendChild(cell);
             });
         });
@@ -172,7 +188,7 @@ function loadInitialState() {
     pdfCellScale = parseFloat(localStorage.getItem('pdfCellScale')) || 1;
     document.getElementById('pdf-cell-scale').value = pdfCellScale;
 
-    isTimeOnLeft = localStorage.getItem('isTimeOnLeft') !== 'false'; // Default to true
+    isTimeOnLeft = localStorage.getItem('isTimeOnLeft') !== 'false';
     document.getElementById('orientation-toggle').checked = isTimeOnLeft;
 
     updateRadioButtons();
@@ -336,7 +352,7 @@ document.getElementById('show-weekends').addEventListener('change', (event) => {
     saveTimetable();
 });
 
-document.getElementById('pdf-cell-scale').addEventListener('click', (event) => {
+document.getElementById('pdf-cell-scale').addEventListener('input', (event) => {
     pdfCellScale = parseFloat(event.target.value) || 1;
     if (pdfCellScale < 1) pdfCellScale = 1;
     if (pdfCellScale > 3) pdfCellScale = 3;
@@ -361,11 +377,40 @@ document.getElementById('add-slot-btn').addEventListener('click', () => {
 });
 
 document.getElementById('remove-slot-btn').addEventListener('click', () => {
-    if (TIME_SLOTS.length > 1) {
-        TIME_SLOTS.pop();
-        createTimetable();
-        saveTimetable();
+    if (TIME_SLOTS.length <= 1) {
+        console.log('Cannot remove: only one time slot remains');
+        return;
     }
+
+    console.log('Remove button clicked, last focused cell:', lastFocusedCell);
+
+    if (lastFocusedCell && lastFocusedCell.hasAttribute('contenteditable') && lastFocusedCell.dataset.time) {
+        const timeToRemove = lastFocusedCell.dataset.time;
+        const indexToRemove = TIME_SLOTS.indexOf(timeToRemove);
+        
+        if (indexToRemove !== -1) {
+            console.log('Removing time slot:', timeToRemove, 'at index:', indexToRemove);
+            TIME_SLOTS.splice(indexToRemove, 1);
+
+            // Update stored data by removing entries for this time slot
+            const data = JSON.parse(localStorage.getItem('timetable') || '{}');
+            const displayDays = showWeekends ? currentDays : currentDays.slice(0, 6);
+            displayDays.slice(1).forEach(day => {
+                const key = `${day}-${timeToRemove}`;
+                delete data[key];
+                console.log('Removed data for:', key);
+            });
+            localStorage.setItem('timetable', JSON.stringify(data));
+        } else {
+            console.log('Time slot not found in TIME_SLOTS, no action taken');
+        }
+    } else {
+        console.log('No valid cell with time slot focused, removing last slot as fallback');
+        TIME_SLOTS.pop();
+    }
+
+    createTimetable();
+    saveTimetable();
 });
 
 // Initialize on load with fallback
