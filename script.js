@@ -285,6 +285,10 @@ function printTimetable() {
 }
 
 // Generate PDF
+// ... (previous code remains unchanged until generatePDF)
+
+// ... (previous code remains unchanged until generatePDF)
+
 function generatePDF() {
     console.log('Generating PDF with pdfCellScale:', pdfCellScale); // Debug log
     const doc = new jsPDF({
@@ -333,24 +337,46 @@ function generatePDF() {
         });
     }
 
-    const baseCellWidth = 15 * pdfCellScale; // Reduced base width for noticeable scaling
+    // Calculate minimum base cell width based on longest day and time slot
+    const longestDay = Math.max(...displayDays.map(day => doc.getTextWidth(day)));
+    const longestTimeSlot = Math.max(...TIME_SLOTS.map(time => doc.getTextWidth(time)));
+    const minBaseCellWidth = Math.max(15, longestDay, longestTimeSlot) + 2; // Add padding
+    const baseCellWidth = minBaseCellWidth * pdfCellScale; // Scale with pdfCellScale
     const baseCellHeight = 7 * pdfCellScale;
-    console.log('Base Cell Width:', baseCellWidth, 'Base Cell Height:', baseCellHeight); // Debug log
+    console.log('Base Cell Width:', baseCellWidth, 'Base Cell Height:', baseCellHeight, 'Min Base:', minBaseCellWidth); // Debug log
     const fontSize = 8 * pdfCellScale; // Scale font size with cells
     const lineHeight = fontSize * 0.4;
     const startX = margin;
-    let startY = margin + 15;
+    const startY = margin + 15; // Define startY before using it
+    let currentY = startY; // Now startY is defined
 
     doc.setLineWidth(0.2 * pdfCellScale);
     doc.setDrawColor(224, 224, 224);
     doc.setFontSize(fontSize);
 
-    let currentY = startY;
     tableData.forEach((row, rowIndex) => {
-        let maxLines = 1;
-        row.forEach(cell => {
-            const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
-            maxLines = Math.max(maxLines, lines.length);
+        let maxLines = 1; // Force single line for day and time slot
+        row.forEach((cell, colIndex) => {
+            // Only split text for content cells, not headers or time slots
+            if (rowIndex === 0 || (!isTimeOnLeft && colIndex === 0) || (isTimeOnLeft && colIndex === 0)) {
+                // For day or time slot cells, truncate if necessary to prevent wrapping
+                const maxWidth = baseCellWidth - 2;
+                let displayText = cell;
+                const textWidth = doc.getTextWidth(cell);
+                if (textWidth > maxWidth) {
+                    // Truncate with ellipsis if text exceeds cell width
+                    let truncated = cell;
+                    while (doc.getTextWidth(truncated + '...') > maxWidth && truncated.length > 0) {
+                        truncated = truncated.slice(0, -1);
+                    }
+                    displayText = truncated + '...';
+                }
+                maxLines = 1; // Ensure single line
+            } else {
+                // For content cells, allow wrapping
+                const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
+                maxLines = Math.max(maxLines, lines.length);
+            }
         });
         const cellHeight = (baseCellHeight + (maxLines - 1) * lineHeight);
 
@@ -359,8 +385,8 @@ function generatePDF() {
             currentY = margin;
         }
 
+        let startX = margin;
         row.forEach((cell, colIndex) => {
-            const x = startX + colIndex * baseCellWidth;
             const y = currentY;
 
             if (rowIndex === 0 || (!isTimeOnLeft && colIndex === 0)) {
@@ -373,11 +399,30 @@ function generatePDF() {
                 doc.setFillColor(255, 255, 255);
                 doc.setTextColor(51, 51, 51);
             }
-            doc.rect(x, y, baseCellWidth, cellHeight, 'F');
-            doc.rect(x, y, baseCellWidth, cellHeight);
+            doc.rect(startX, y, baseCellWidth, cellHeight, 'F');
+            doc.rect(startX, y, baseCellWidth, cellHeight);
 
-            const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
-            doc.text(lines, x + 1, y + 3, { maxWidth: baseCellWidth - 2 });
+            // Handle text display
+            if (rowIndex === 0 || (!isTimeOnLeft && colIndex === 0) || (isTimeOnLeft && colIndex === 0)) {
+                // Single-line display for day or time slot
+                const maxWidth = baseCellWidth - 2;
+                let displayText = cell;
+                const textWidth = doc.getTextWidth(cell);
+                if (textWidth > maxWidth) {
+                    let truncated = cell;
+                    while (doc.getTextWidth(truncated + '...') > maxWidth && truncated.length > 0) {
+                        truncated = truncated.slice(0, -1);
+                    }
+                    displayText = truncated + '...';
+                }
+                doc.text(displayText, startX + 1, y + 3, { maxWidth: maxWidth, align: 'left' });
+            } else {
+                // Multi-line for content cells
+                const lines = doc.splitTextToSize(cell, baseCellWidth - 2);
+                doc.text(lines, startX + 1, y + 3, { maxWidth: baseCellWidth - 2 });
+            }
+
+            startX += baseCellWidth;
         });
 
         currentY += cellHeight;
@@ -385,6 +430,9 @@ function generatePDF() {
 
     doc.save('timetable.pdf');
 }
+
+// ... (rest of the code remains unchanged)
+
 
 // Event listeners
 document.getElementById('print-btn').addEventListener('click', printTimetable);
